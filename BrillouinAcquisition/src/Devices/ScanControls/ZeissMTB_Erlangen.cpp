@@ -25,7 +25,8 @@ ZeissMTB_Erlangen::ZeissMTB_Erlangen() noexcept {
 		{ "Eyepiece",		ScanPreset::SCAN_EYEPIECE,		{ {1}, {}, {4}, {1}, {1}, {2}, {2} }	},	// Eyepiece
 		{ "Fluo Blue",		ScanPreset::SCAN_EPIFLUOBLUE,	{ {1}, {}, {3},  {}, {2}, {1}, {1} }	},	// Fluorescence blue
 		{ "Fluo Green",		ScanPreset::SCAN_EPIFLUOGREEN,	{ {1}, {}, {1},  {}, {2}, {1}, {1} }	},	// Fluorescence green
-		{ "Fluo Red",		ScanPreset::SCAN_EPIFLUORED,	{ {1}, {}, {2},  {}, {2}, {1}, {1} }	}	// Fluorescence red
+		{ "Fluo Red",		ScanPreset::SCAN_EPIFLUORED,	{ {1}, {}, {2},  {}, {2}, {1}, {1} }	},	// Fluorescence red
+		{ "EOM",            ScanPreset::SCAN_EOMCALIBRATION,{ {2}, {}, {4}, {2}, {1}, {2}, {2} }	}	// EOM Calibration
 	};
 
 	m_elementPositions = std::vector<double>((int)DEVICE_ELEMENT::COUNT, -1);
