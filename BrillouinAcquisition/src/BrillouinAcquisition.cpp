@@ -1195,6 +1195,7 @@ void BrillouinAcquisition::showBrillouinStatus(ACQUISITION_STATUS status) {
 	ui->sampleSelection->setDisabled(running);
 	ui->nrCalibrationImages->setDisabled(running);
 	ui->calibrationExposureTime->setDisabled(running);
+	ui->eomFrequencyInput->setDisabled(running);
 	ui->repetitionInterval->setDisabled(running);
 	ui->repetitionCount->setDisabled(running);
 }
@@ -3450,6 +3451,7 @@ void BrillouinAcquisition::updateBrillouinSettings() {
 	ui->nrCalibrationImages->setValue(m_Brillouin->settings.nrCalibrationImages);
 	ui->calibrationExposureTime->setValue(m_Brillouin->settings.calibrationExposureTime);
 	ui->sampleSelection->setCurrentText(QString::fromStdString(m_Brillouin->settings.sample));
+	ui->eomFrequencyInput->setValue(m_Brillouin->settings.eomFrequencyInput);
 
 	// repetition settings
 	ui->repetitionCount->setValue(m_Brillouin->settings.repetitions.count);
@@ -3589,6 +3591,10 @@ void BrillouinAcquisition::on_nrCalibrationImages_valueChanged(int value) {
 
 void BrillouinAcquisition::on_calibrationExposureTime_valueChanged(double value) {
 	m_Brillouin->settings.calibrationExposureTime = value;
+}
+
+void BrillouinAcquisition::on_eomFrequencyInput_valueChanged(double value) {
+	m_Brillouin->settings.eomFrequencyInput = value;
 }
 
 /*
@@ -3970,6 +3976,7 @@ void BrillouinAcquisition::writeSettings() {
 	settings.setValue("brillouin-con-calibrate", m_Brillouin->settings.conCalibration);
 	settings.setValue("brillouin-con-calibrate-interval", m_Brillouin->settings.conCalibrationInterval);
 	settings.setValue("brillouin-nr-calibration-images", m_Brillouin->settings.nrCalibrationImages);
+	settings.setValue("brillouin-eom-frequency-input", m_Brillouin->settings.eomFrequencyInput);
 	settings.setValue("brillouin-calibration-exposure-time", m_Brillouin->settings.calibrationExposureTime);
 	settings.setValue("brillouin-camera-roi-left", m_deviceSettings.camera.roi.left);
 	settings.setValue("brillouin-camera-roi-top", m_deviceSettings.camera.roi.top);
@@ -4063,5 +4070,6 @@ void BrillouinAcquisition::readSettings() {
 	m_Brillouin->settings.conCalibrationInterval = settings.value("brillouin-con-calibrate-interval", m_Brillouin->settings.conCalibrationInterval).toDouble();
 	m_Brillouin->settings.nrCalibrationImages = settings.value("brillouin-nr-calibration-images", m_Brillouin->settings.nrCalibrationImages).toInt();
 	m_Brillouin->settings.calibrationExposureTime = settings.value("brillouin-calibration-exposure-time", m_Brillouin->settings.calibrationExposureTime).toDouble();
+	m_Brillouin->settings.eomFrequencyInput = settings.value("brillouin-eom-frequency-input", m_Brillouin->settings.eomFrequencyInput).toDouble();
 	settings.endGroup();
 }
