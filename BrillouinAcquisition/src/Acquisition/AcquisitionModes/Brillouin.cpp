@@ -328,7 +328,7 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 
 	// If EOM mode, prepare frequency range
     bool isEOM = (m_settings.sample == "EOM");
-    double freqStart = 4.0;
+	double freqStart = { 4.0 };
     double freqEnd = m_settings.eomFrequencyInput;
     int nImages = m_settings.nrCalibrationImages;
     double step = (nImages > 1) ? (freqEnd - freqStart) / (nImages - 1) : 0;
@@ -337,6 +337,10 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 
 	auto images = std::vector<std::byte>((int64_t)m_settings.camera.roi.bytesPerFrame * m_settings.nrCalibrationImages);
 	for (gsl::index mm{ 0 }; mm < m_settings.nrCalibrationImages; mm++) {
+		if (m_abort) {
+			this->abortMode(storage);
+			return;
+		}
 
 		// If EOM mode, set voltage before acquiring images
 		if (isEOM) {
@@ -350,10 +354,6 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 			// emit s_eomSetpFrequencyChanged(stepFrequency);
 		}
 
-		if (m_abort) {
-			this->abortMode(storage);
-			return;
-		}
 		// acquire images
 		auto pointerPos = (int64_t)m_settings.camera.roi.bytesPerFrame * mm;
 
