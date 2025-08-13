@@ -499,7 +499,7 @@ private slots:
 	void on_conCalibrationInterval_valueChanged(double);
 	void on_nrCalibrationImages_valueChanged(int);
 	void on_calibrationExposureTime_valueChanged(double);
-	void on_eom_frequency_input_valueChanged(double);
+	void on_eomFrequencyInput_valueChanged(double);
 
 	// repetitions
 	void on_repetitionCount_valueChanged(int);
