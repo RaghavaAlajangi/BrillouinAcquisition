@@ -3,6 +3,7 @@
 
 #include "AcquisitionMode.h"
 #include "../../Devices/Cameras/Camera.h"
+#include "../../Devices/EOM.h" 
 #include "../../helper/thread.h"
 #include "src/lib/buffer_circular.h"
 
