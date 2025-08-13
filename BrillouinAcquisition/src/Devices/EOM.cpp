@@ -1,3 +1,4 @@
+#include "stdafx.h" 
 #include "EOM.h"
 #include <cmath>
 #include <NIDAQmx.h>
