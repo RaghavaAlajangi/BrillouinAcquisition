@@ -328,8 +328,8 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 
 	// If EOM mode, prepare frequency range
     bool isEOM = (m_settings.sample == "EOM");
-    double freqStart = m_settings.eomFrequencyStart;
-    double freqEnd = m_settings.eomFrequencyEnd;
+    double freqStart = 4.0;
+    double freqEnd = m_settings.eomFrequencyInput;
     int nImages = m_settings.nrCalibrationImages;
     double step = (nImages > 1) ? (freqEnd - freqStart) / (nImages - 1) : 0;
 
@@ -340,10 +340,10 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 
 		// If EOM mode, set voltage before acquiring images
 		if (isEOM) {
-			double stepFrequency = freqStart + ll * step;
+			double stepFrequency = freqStart + mm * step;
 			double voltage = EOM::frequencyToVoltage(stepFrequency);
 			EOM::writeVoltageToDAQ(voltage);
-			m_settings.eomSetpFrequency = stepFrequency;
+			//m_settings.eomSetpFrequency = stepFrequency;
 			frequencies.push_back(stepFrequency);
 
 			// Optional: emit a signal to update UI with the stepFrequency

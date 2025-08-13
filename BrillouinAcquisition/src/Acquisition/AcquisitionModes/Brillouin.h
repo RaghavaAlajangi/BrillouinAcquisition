@@ -59,6 +59,7 @@ struct BRILLOUIN_SETTINGS {
 			conCalibrationInterval = settings.conCalibrationInterval;
 			nrCalibrationImages = settings.nrCalibrationImages;
 			calibrationExposureTime = settings.calibrationExposureTime;
+			eomFrequencyInput = settings.eomFrequencyInput;
 			repetitions = settings.repetitions;
 			camera = settings.camera;
 			return *this;
@@ -71,6 +72,7 @@ struct BRILLOUIN_SETTINGS {
 		double conCalibrationInterval{ 10 };		// interval of continuous calibrations
 		int nrCalibrationImages{ 10 };				// number of calibration images
 		double calibrationExposureTime{ 1 };		// exposure time for calibration images
+		double eomFrequencyInput{ 4.0 };
 
 		// repetition parameters
 		REPETITIONS repetitions;
