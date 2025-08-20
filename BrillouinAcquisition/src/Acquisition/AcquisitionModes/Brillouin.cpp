@@ -342,7 +342,8 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
         EOM::writeAttenuationVoltageToDAQ(defaultAttenuationVoltage);
     }
 
-	std::vector<double> frequencies;
+	std::vector<double> eomFrequencies;
+	std::vector<double> eomVoltages;
 
 	auto images = std::vector<std::byte>((int64_t)m_settings.camera.roi.bytesPerFrame * m_settings.nrCalibrationImages);
 	for (gsl::index mm{ 0 }; mm < m_settings.nrCalibrationImages; mm++) {
@@ -354,13 +355,10 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 		// If EOM mode, set voltage before acquiring images
 		if (isEOM) {
 			double stepFrequency = freqStart + mm * step;
-			double voltage = EOM::frequencyToVoltage(stepFrequency);
-			EOM::writeVoltageToDAQ(voltage);
-			//m_settings.eomSetpFrequency = stepFrequency;
-			frequencies.push_back(stepFrequency);
-
-			// Optional: emit a signal to update UI with the stepFrequency
-			// emit s_eomSetpFrequencyChanged(stepFrequency);
+			double stepVoltage = EOM::frequencyToVoltage(stepFrequency);
+			EOM::writeVoltageToDAQ(stepVoltage);
+			eomFrequencies.push_back(stepFrequency);
+			eomVoltages.push_back(stepVoltage);
 		}
 
 		// acquire images
@@ -388,7 +386,9 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 			date,					// the datetime
 			m_settings.calibrationExposureTime, // the exposure time of the calibration
 			m_settings.camera.gain,
-			m_settings.camera.roi
+			m_settings.camera.roi,
+			eomFrequencies,
+			eomVoltages
 			);
 
 		QMetaObject::invokeMethod(
@@ -409,7 +409,9 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 			date,					// the datetime
 			m_settings.calibrationExposureTime, // the exposure time of the calibration
 			m_settings.camera.gain,
-			m_settings.camera.roi
+			m_settings.camera.roi,
+			eomFrequencies,
+			eomVoltages
 			);
 
 		QMetaObject::invokeMethod(
@@ -430,7 +432,9 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 			date,					// the datetime
 			m_settings.calibrationExposureTime, // the exposure time of the calibration
 			m_settings.camera.gain,
-			m_settings.camera.roi
+			m_settings.camera.roi,
+			eomFrequencies,
+			eomVoltages
 			);
 
 		QMetaObject::invokeMethod(
