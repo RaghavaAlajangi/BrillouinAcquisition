@@ -6,22 +6,22 @@
 double EOM::frequencyToVoltage(double frequency)
 {
     // Polynomial coefficients
-    double p0 = -4.19117e-6;
-    double p1 = 0.000168553;
-    double p2 = 0.00273963;
-    double p3 = 0.0228064;
-    double p4 = -0.106149;
-    double p5 = 0.596645;
-    double p6 = 3.40049;
+    double p0 = 687.447;
+    double p1 = -724.778;
+    double p2 = 315.118;
+    double p3 = -72.5507;
+    double p4 = 9.36533;
+    double p5 = -0.642672;
+    double p6 = 0.0183256;
 
     // Polynomial (degree 6)
-    double voltage = (p0 * std::pow(frequency, 6)) +
-                     (p1 * std::pow(frequency, 5)) +
-                     (p2 * std::pow(frequency, 4)) +
-                     (p3 * std::pow(frequency, 3)) +
-                     (p4 * std::pow(frequency, 2)) +
-                     (p5 * frequency) +
-                     p6;
+    double voltage = (p6 * std::pow(frequency, 6)) +
+        (p5 * std::pow(frequency, 5)) +
+        (p4 * std::pow(frequency, 4)) +
+        (p3 * std::pow(frequency, 3)) +
+        (p2 * std::pow(frequency, 2)) +
+        (p1 * frequency) +
+        p0;
 
     return std::round(voltage * 100.0) / 100.0;
 }
