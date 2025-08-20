@@ -181,7 +181,7 @@ QTabBar::tab:!selected {
                 <x>0</x>
                 <y>0</y>
                 <width>236</width>
-                <height>314</height>
+                <height>312</height>
                </rect>
               </property>
               <property name="sizePolicy">
@@ -742,8 +742,8 @@ QTabBar::tab:!selected {
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>236</width>
-                <height>314</height>
+                <width>164</width>
+                <height>180</height>
                </rect>
               </property>
               <property name="minimumSize">
@@ -803,7 +803,7 @@ QTabBar::tab:!selected {
                 <x>0</x>
                 <y>0</y>
                 <width>230</width>
-                <height>314</height>
+                <height>180</height>
                </rect>
               </property>
               <property name="sizePolicy">
@@ -1066,8 +1066,8 @@ QTabBar::tab:!selected {
                <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>236</width>
-                <height>314</height>
+                <width>164</width>
+                <height>207</height>
                </rect>
               </property>
               <property name="minimumSize">
@@ -1553,7 +1553,7 @@ QTabBar::tab:!selected {
                      <rect>
                       <x>0</x>
                       <y>0</y>
-                      <width>217</width>
+                      <width>216</width>
                       <height>624</height>
                      </rect>
                     </property>
@@ -1580,8 +1580,8 @@ QTabBar::tab:!selected {
                        <rect>
                         <x>10</x>
                         <y>20</y>
-                        <width>213</width>
-                        <height>102</height>
+                        <width>219</width>
+                        <height>108</height>
                        </rect>
                       </property>
                       <layout class="QGridLayout" name="gridLayout" rowstretch="0,1,1,1">
@@ -2355,6 +2355,9 @@ QTabBar::tab:!selected {
                       </property>
                      </widget>
                      <widget class="QLabel" name="eomFrequencyLabel">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
                       <property name="geometry">
                        <rect>
                         <x>10</x>
@@ -2371,9 +2374,12 @@ QTabBar::tab:!selected {
                       </property>
                      </widget>
                      <widget class="QDoubleSpinBox" name="eomFrequencyInput">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
                       <property name="geometry">
                        <rect>
-                        <x>60</x>
+                        <x>70</x>
                         <y>110</y>
                         <width>31</width>
                         <height>18</height>
@@ -2404,12 +2410,15 @@ QTabBar::tab:!selected {
                        <double>4.000000000000000</double>
                       </property>
                      </widget>
-                     <widget class="QLabel" name="eomFrequencyLabel_2">
+                     <widget class="QLabel" name="eomAttenuationLabel">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
                       <property name="geometry">
                        <rect>
                         <x>100</x>
                         <y>110</y>
-                        <width>61</width>
+                        <width>71</width>
                         <height>18</height>
                        </rect>
                       </property>
@@ -2421,9 +2430,12 @@ QTabBar::tab:!selected {
                       </property>
                      </widget>
                      <widget class="QDoubleSpinBox" name="eomAttenuationInput">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
                       <property name="geometry">
                        <rect>
-                        <x>160</x>
+                        <x>170</x>
                         <y>110</y>
                         <width>31</width>
                         <height>18</height>
@@ -2815,7 +2827,7 @@ border: none;</string>
                      <rect>
                       <x>0</x>
                       <y>0</y>
-                      <width>217</width>
+                      <width>164</width>
                       <height>605</height>
                      </rect>
                     </property>
@@ -4138,7 +4150,7 @@ border: none;</string>
      <x>0</x>
      <y>0</y>
      <width>1420</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuHelp">
@@ -4410,8 +4422,8 @@ border: none;</string>
  </resources>
  <connections/>
  <buttongroups>
+  <buttongroup name="buttonGroup_3"/>
   <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup"/>
-  <buttongroup name="buttonGroup_3"/>
  </buttongroups>
 </ui>
