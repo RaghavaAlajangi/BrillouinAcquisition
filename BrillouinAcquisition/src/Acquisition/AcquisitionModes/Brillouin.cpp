@@ -327,20 +327,11 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 	};
 
 	// If EOM mode, prepare frequency range
-    bool isEOM = (m_settings.sample == "EOM");
 	double freqStart = { 4.0 };
     double freqEnd = m_settings.eomFrequencyInput;
     int nImages = m_settings.nrCalibrationImages;
     double step = (nImages > 1) ? (freqEnd - freqStart) / (nImages - 1) : 0;
     double defaultAttenuationVoltage = { 5.0 };
-
-    // If EOM selected set the attenuation voltage from user input else set 
-	// the default.
-    if (isEOM) {
-        EOM::writeAttenuationVoltageToDAQ(m_settings.eomAttenuationInput);
-    } else {
-        EOM::writeAttenuationVoltageToDAQ(defaultAttenuationVoltage);
-    }
 
 	std::vector<double> eomFrequencies;
 	std::vector<double> eomVoltages;
@@ -353,7 +344,7 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 		}
 
 		// If EOM mode, set voltage before acquiring images
-		if (isEOM) {
+		if (m_settings.sample == "EOM") {
 			double stepFrequency = freqStart + mm * step;
 			double stepVoltage = EOM::frequencyToVoltage(stepFrequency);
 			EOM::writeVoltageToDAQ(stepVoltage);

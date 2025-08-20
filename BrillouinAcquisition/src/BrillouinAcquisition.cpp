@@ -1751,6 +1751,16 @@ void BrillouinAcquisition::showPreviewRunning(bool isRunning) {
 	} else {
 		ui->camera_playPause->setText("Play");
 	}
+
+	// If EOM selected set the attenuation voltage from user input else set
+	// the default.
+	if (m_Brillouin->settings.sample == "EOM") {
+		EOM::writeAttenuationVoltageToDAQ(m_Brillouin->settings.eomAttenuationInput);
+	}
+	else {
+		EOM::writeAttenuationVoltageToDAQ(5.0);
+	}
+
 	startPreview(isRunning);
 }
 
