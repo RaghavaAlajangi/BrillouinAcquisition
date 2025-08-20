@@ -501,7 +501,8 @@ private slots:
 	void on_calibrationExposureTime_valueChanged(double);
 	void on_eomFrequencyInput_valueChanged(double);
 	void on_eomAttenuationInput_valueChanged(double);
-
+	void showEOMOptions();
+    
 	// repetitions
 	void on_repetitionCount_valueChanged(int);
 	void on_repetitionInterval_valueChanged(double);

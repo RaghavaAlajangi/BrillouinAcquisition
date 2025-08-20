@@ -131,6 +131,10 @@ BrillouinAcquisition::BrillouinAcquisition(QWidget *parent) noexcept :
 		this,
 		[this](std::vector<POINT3> orderedPositions) { AOI_changed(orderedPositions); }
 	);
+	// slot to show EOM options
+	connection = QWidget::connect(
+		ui->sampleSelection, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this, [this](int) { showEOMOptions(); });
 
 	m_Brillouin->determineScanOrder();
 
@@ -1349,6 +1353,21 @@ QString BrillouinAcquisition::formatSeconds(int seconds) {
 		string.sprintf("%2.0f seconds", (double)seconds);
 	}
 	return string;
+}
+
+void BrillouinAcquisition::showEOMOptions() {
+	bool isEOM = (ui->sampleSelection->currentText() == "EOM");
+	if (isEOM) {
+		ui->eomFrequencyLabel->setEnabled(true);
+		ui->eomFrequencyInput->setEnabled(true);
+		ui->eomAttenuationLabel->setEnabled(true);
+		ui->eomAttenuationInput->setEnabled(true);
+	} else {
+		ui->eomFrequencyLabel->setEnabled(false);
+		ui->eomFrequencyInput->setEnabled(false);
+		ui->eomAttenuationLabel->setEnabled(false);
+		ui->eomAttenuationInput->setEnabled(false);
+	}
 }
 
 void BrillouinAcquisition::plotODTVoltages(const ODT_SETTINGS& settings, const ODT_MODE& mode) {
