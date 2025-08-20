@@ -8,8 +8,8 @@ public:
     static void writeVoltageToDAQ(double voltage);
     static void writeAttenuationVoltageToDAQ(double voltage);
     static double frequencyToVoltage(double frequency);
-};
+
 private:
     static void writeVoltage(const std::string& channel, double voltage);
-
+};
 #endif // EOM_H
