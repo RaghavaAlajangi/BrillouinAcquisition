@@ -331,7 +331,6 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
     double freqEnd = m_settings.eomFrequencyInput;
     int nImages = m_settings.nrCalibrationImages;
     double step = (nImages > 1) ? (freqEnd - freqStart) / (nImages - 1) : 0;
-    double defaultAttenuationVoltage = { 5.0 };
 
 	std::vector<double> eomFrequencies;
 	std::vector<double> eomVoltages;
