@@ -14,9 +14,9 @@ ZeissECU::ZeissECU() noexcept {
 		DeviceElement { "Beam Block",	2, (int)DEVICE_ELEMENT::BEAMBLOCK, { "Close", "Open" } },
 		DeviceElement { "Objective",	6, (int)DEVICE_ELEMENT::OBJECTIVE },
 		DeviceElement { "Reflector",	5, (int)DEVICE_ELEMENT::REFLECTOR },
-		DeviceElement { "Tubelens",	    3, (int)DEVICE_ELEMENT::TUBELENS },
-		DeviceElement { "Baseport",	    3, (int)DEVICE_ELEMENT::BASEPORT },
-		DeviceElement { "Sideport",	    3, (int)DEVICE_ELEMENT::SIDEPORT },
+		DeviceElement { "Tubelens",	3, (int)DEVICE_ELEMENT::TUBELENS },
+		DeviceElement { "Baseport",	3, (int)DEVICE_ELEMENT::BASEPORT },
+		DeviceElement { "Sideport",	3, (int)DEVICE_ELEMENT::SIDEPORT },
 		DeviceElement { "RL Shutter",	2, (int)DEVICE_ELEMENT::RLSHUTTER, { "Close", "Open" } },
 		DeviceElement { "Mirror",		2, (int)DEVICE_ELEMENT::MIRROR },
 		DeviceElement { "Hal. Lamp",	0, (int)DEVICE_ELEMENT::LAMP, DEVICE_INPUT_TYPE::SLIDER }
@@ -31,7 +31,6 @@ ZeissECU::ZeissECU() noexcept {
 		{ "Fluo Green",		ScanPreset::SCAN_EPIFLUOGREEN,	{ {1}, {}, {3}, {3},  {}, {2}, {2}, {1}, {} }	},	// Fluorescence green
 		{ "Fluo Red",		ScanPreset::SCAN_EPIFLUORED,	{ {1}, {}, {4}, {3},  {}, {2}, {2}, {1}, {} }	},	// Fluorescence red
 		{ "Laser off",		ScanPreset::SCAN_LASEROFF,		{ {1}, {},  {},  {},  {},  {}, {1},  {}, {} }	}	// Laser off
-
 	};
 
 	m_elementPositions = std::vector<double>((int)DEVICE_ELEMENT::COUNT, -1);

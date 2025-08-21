@@ -11,10 +11,10 @@ ZeissMTB_Erlangen::ZeissMTB_Erlangen() noexcept {
 		DeviceElement { "Beam Block",			2, (int)DEVICE_ELEMENT::BEAMBLOCK,	{ "Close", "Open" } },
 		DeviceElement { "Objective",			6, (int)DEVICE_ELEMENT::OBJECTIVE },
 		DeviceElement { "Reflector",			6, (int)DEVICE_ELEMENT::REFLECTOR,	{ "Green", "Red", "Blue" } },
-		DeviceElement { "Sideport",			    3, (int)DEVICE_ELEMENT::SIDEPORT,	{ "Eyepiece", "Left", "Right" } },
+		DeviceElement { "Sideport",			3, (int)DEVICE_ELEMENT::SIDEPORT,	{ "Eyepiece", "Left", "Right" } },
 		DeviceElement { "RL Shutter",			2, (int)DEVICE_ELEMENT::RLSHUTTER,	{ "Close", "Open" } },
 		DeviceElement { "Mirror",				2, (int)DEVICE_ELEMENT::MIRROR,		{ "ODT", "Brillouin" } },
-		DeviceElement { "LED illumination",	    2, (int)DEVICE_ELEMENT::LEDLAMP,	{ "Off", "On" } }
+		DeviceElement { "LED illumination",	2, (int)DEVICE_ELEMENT::LEDLAMP,	{ "Off", "On" } }
 	};
 
 	m_presets = {

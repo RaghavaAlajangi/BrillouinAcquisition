@@ -21,7 +21,7 @@ ZeissMTB_Erlangen2::ZeissMTB_Erlangen2() noexcept {
 		{ "Calibration",	ScanPreset::SCAN_CALIBRATION,	{{}, {1}, {3}, {1}, {2}, {1}	}},	// Calibration
 		{ "Confocal",		ScanPreset::SCAN_CONFOCAL,		{{}, {1}, {2}, {1}, {2}, {1}	}},	// Confocal
 		{ "Brightfield",	ScanPreset::SCAN_BRIGHTFIELD,	{{}, {1}, {3}, {2},  {}, {2}	}},	// Brightfield
-		{ "Eyepiece",		ScanPreset::SCAN_EYEPIECE,		{{}, {1}, {1}, {1}, {1}, {1}	}}	// Eyepiece
+		{ "Eyepiece",		ScanPreset::SCAN_EYEPIECE,		{{}, {1}, {1}, {1}, {1}, {1}	}},	// Eyepiece
 	};
 
 	m_elementPositions = std::vector<double>((int)DEVICE_ELEMENT::COUNT, -1);
