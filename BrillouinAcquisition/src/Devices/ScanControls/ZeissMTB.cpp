@@ -78,12 +78,20 @@ void ZeissMTB::setPosition(POINT2 position) {
 	// We have to subtract the position of the scanner to get the position of the stage.
 	auto positionStage = position - m_positionScanner;
 	if (abs(m_positionStage.x - positionStage.x) > 1e-6) {
-		m_positionStage.x = positionStage.x;
-		success = m_stageX->SetPosition(m_positionStage.x, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		try {
+			m_positionStage.x = positionStage.x;
+			success = m_stageX->SetPosition(m_positionStage.x, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		} catch (_com_error& e) {
+			qDebug() << "Error setting stage X position:" << e.ErrorMessage();
+		}
 	}
 	if (abs(m_positionStage.y - positionStage.y) > 1e-6) {
-		m_positionStage.y = positionStage.y;
-		success = m_stageY->SetPosition(m_positionStage.y, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		try {
+			m_positionStage.y = positionStage.y;
+			success = m_stageY->SetPosition(m_positionStage.y, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		} catch (_com_error& e) {
+			qDebug() << "Error setting stage Y position:" << e.ErrorMessage();
+		}
 	}
 	calculateCurrentPositionBounds(POINT3{ position.x, position.y, m_positionFocus });
 	announcePositions();
@@ -96,8 +104,12 @@ void ZeissMTB::setPosition(POINT3 position) {
 	}
 	// Only set position if it has changed
 	if (abs(m_positionFocus - position.z) > 1e-6) {
-		m_positionFocus = position.z;
-		success = m_ObjectiveFocus->SetPosition(m_positionFocus, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		try {
+			m_positionFocus = position.z;
+			success = m_ObjectiveFocus->SetPosition(m_positionFocus, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+		} catch (_com_error& e) {
+			qDebug() << "Error setting focus position:" << e.ErrorMessage();
+		}
 	}
 	setPosition(POINT2{ position.x, position.y });
 }
@@ -108,12 +120,20 @@ void ZeissMTB::movePosition(POINT2 distance) {
 		return;
 	}
 	if (abs(distance.x) > 1e-6) {
-		m_positionStage.x += distance.x;
-		success = m_stageX->SetPosition(distance.x, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+		try {
+			m_positionStage.x += distance.x;
+			success = m_stageX->SetPosition(distance.x, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+		} catch (_com_error& e) {
+			qDebug() << "Error moving stage X:" << e.ErrorMessage();
+		}
 	}
 	if (abs(distance.y) > 1e-6) {
-		m_positionStage.y += distance.y;
-		success = m_stageY->SetPosition(distance.y, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+		try {
+			m_positionStage.y += distance.y;
+			success = m_stageY->SetPosition(distance.y, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+		} catch (_com_error& e) {
+			qDebug() << "Error moving stage Y:" << e.ErrorMessage();
+		}
 	}
 	calculateCurrentPositionBounds();
 	announcePositions();
@@ -122,11 +142,19 @@ void ZeissMTB::movePosition(POINT2 distance) {
 POINT3 ZeissMTB::getPosition(PositionType positionType) {
 	// Update the positions from the hardware
 	if (m_stageX && m_stageY) {
-		m_positionStage.x = m_stageX->GetPosition("µm");
-		m_positionStage.y = m_stageY->GetPosition("µm");
+		try {
+			m_positionStage.x = m_stageX->GetPosition("µm");
+			m_positionStage.y = m_stageY->GetPosition("µm");
+		} catch (_com_error& e) {
+			qDebug() << "Error getting stage position:" << e.ErrorMessage();
+		}
 	}
 	if (m_ObjectiveFocus) {
-		m_positionFocus = m_ObjectiveFocus->GetPosition("µm");
+		try {
+			m_positionFocus = m_ObjectiveFocus->GetPosition("µm");
+		} catch (_com_error& e) {
+			qDebug() << "Error getting focus position:" << e.ErrorMessage();
+		}
 	}
 
 	// Return the current position
@@ -324,14 +352,24 @@ bool ZeissMTB::setElement(IMTBChangerPtr element, int position) {
 	if (!element) {
 		return false;
 	}
-	return element->SetPosition(position, MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+	try {
+		return element->SetPosition(position, MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+	} catch (_com_error& e) {
+		qDebug() << "Error setting element position:" << e.ErrorMessage();
+		return false;
+	}
 }
 
 int ZeissMTB::getElement(IMTBChangerPtr element) {
 	if (!element) {
 		return -1;
 	}
-	return element->GetPosition();
+	try {
+		return element->GetPosition();
+	} catch (_com_error& e) {
+		qDebug() << "Error getting element position:" << e.ErrorMessage();
+		return -1;
+	}
 }
 
 void ZeissMTB::setBeamBlock(int position) {
@@ -415,13 +453,22 @@ void ZeissMTB::setLamp(int voltage, bool block) {
 	}
 	if (voltage > 100) voltage = 100;
 	if (voltage < 0) voltage = 0;
-	// Set the voltage
-	auto success = m_Lamp->SetPosition(voltage, "%", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+	try {
+		// Set the voltage
+		auto success = m_Lamp->SetPosition(voltage, "%", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+	} catch (_com_error& e) {
+		qDebug() << "Error setting lamp voltage:" << e.ErrorMessage();
+	}
 }
 
 double ZeissMTB::getLamp() {
 	if (!m_Lamp) {
 		return 0.0;
 	}
-	return m_Lamp->GetPosition("%");
+	try {
+		return m_Lamp->GetPosition("%");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting lamp voltage:" << e.ErrorMessage();
+		return 0.0;
+	}
 }

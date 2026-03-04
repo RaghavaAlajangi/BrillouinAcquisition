@@ -63,9 +63,7 @@
       $(EXTERNAL_UNWRAP2_DIR);
     </ThirdPartyLibDirs>
 
-    <ThirdPartyLibs>
-      $(ANDOR_SDK_DIR)\atcorem.lib;
-      $(ANDOR_SDK_DIR)\atutilitym.lib;
+    <ThirdPartyLibsCommon>
       libfftw3-3.lib;
       $(POINT_GREY_DIR)\lib64\vs2015\FlyCapture2_v140.lib;
       $(IDS_UEYE_DIR)\Develop\Lib\uEye_api_64.lib;
@@ -77,7 +75,7 @@
       Thorlabs.MotionControl.KCube.DCServo.lib;
       Thorlabs.MotionControl.KCube.Solenoid.lib;
       pvcam64.lib;
-    </ThirdPartyLibs>
+    </ThirdPartyLibsCommon>
   </PropertyGroup>
 
   <!-- Differences specific to Debug build -->
@@ -87,7 +85,9 @@
     </ThirdPartyIncludes>
 
     <ThirdPartyLibs>
-      $(ThirdPartyLibs);
+      $(ThirdPartyLibsCommon);
+      $(ANDOR_SDK_DIR)\atcorem.lib;
+      $(ANDOR_SDK_DIR)\atutilitym.lib;
       <!-- OpenCV debug DLL file -->
       opencv_world470d.lib;
     </ThirdPartyLibs>
@@ -100,7 +100,9 @@
     </ThirdPartyIncludes>
 
     <ThirdPartyLibs>
-      $(ThirdPartyLibs);
+      $(ThirdPartyLibsCommon);
+      $(ANDOR_SDK_DIR)\atcore.lib;
+      $(ANDOR_SDK_DIR)\atutility.lib;
       <!-- OpenCV normal DLL file -->
       opencv_world470.lib;
     </ThirdPartyLibs>
@@ -111,8 +113,6 @@
   <PropertyGroup Label="PostBuildCmdsCommon">
     <!-- Common copy commands for both Debug and Release -->
     <PostBuildCmdsCommon>
-			copy "$(ANDOR_SDK_DIR)\atcore.dll" $(TargetDir)
-			copy "$(ANDOR_SDK_DIR)\atutility.dll" $(TargetDir)
 			copy "$(ANDOR_SDK_DIR)\atblkbx.dll" $(TargetDir)
 			copy "$(ANDOR_SDK_DIR)\atcl_bitflow.dll" $(TargetDir)
 			copy "$(ANDOR_SDK_DIR)\atdevregcam.dll" $(TargetDir)
@@ -137,6 +137,8 @@
   <PropertyGroup Condition="'$(Configuration)'=='Debug' and '$(Platform)'=='x64'">
     <!-- Additional copy commands for Debug -->
     <PostBuildCmdsDebug>
+      copy "$(ANDOR_SDK_DIR)\atcorem.dll" $(TargetDir)
+      copy "$(ANDOR_SDK_DIR)\atutilitym.dll" $(TargetDir)
       copy "$(OPENCV_DIR)\x64\vc16\bin\opencv_world470d.dll" $(TargetDir)
     </PostBuildCmdsDebug>
   </PropertyGroup>
@@ -144,6 +146,8 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release' and '$(Platform)'=='x64'">
     <!-- Additional copy commands for Release, if needed -->
     <PostBuildCmdsRelease>
+      copy "$(ANDOR_SDK_DIR)\atcore.dll" $(TargetDir)
+      copy "$(ANDOR_SDK_DIR)\atutility.dll" $(TargetDir)
       copy "$(OPENCV_DIR)\x64\vc16\bin\opencv_world470.dll" $(TargetDir)
 			copy "$(IDS_UEYE_DIR)\USB driver package\ueye_api_64.dll" $(TargetDir)
 			copy "$(SystemRoot)\System32\pvcam64.dll" $(TargetDir)
