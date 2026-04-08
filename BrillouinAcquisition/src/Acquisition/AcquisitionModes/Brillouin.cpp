@@ -186,14 +186,18 @@ void Brillouin::setScanOrderX(int x) {
 		emit(s_scanOrderChanged(m_scanOrder));
 		return;
 	}
-	// switch values
-	if (m_scanOrder.y == x) {
-		m_scanOrder.y = m_scanOrder.x;
+
+	// Implement snake logic
+	if (m_scanOrder.snake) {
+		// Reverse direction
+		m_scanOrder.x = (m_scanOrder.x == 0) ? 1 : 0;
+	} else {
+		// Forward direction
+		m_scanOrder.x = x;
 	}
-	if (m_scanOrder.z == x) {
-		m_scanOrder.z = m_scanOrder.x;
-	}
-	m_scanOrder.x = x;
+
+	// Toggle snake state
+	m_scanOrder.snake = !m_scanOrder.snake;
 	emit(s_scanOrderChanged(m_scanOrder));
 }
 
