@@ -10,9 +10,10 @@
 
 struct SCAN_ORDER {
 	bool automatical{ true };
-	int x{ 0 };	// first scan in x-direction
-	int y{ 1 };	// then in y-direction
-	int z{ 2 };	// scan in z-direction last
+	int x{ 0 }; // first scan in x-direction
+	int y{ 1 }; // then in y-direction
+	int z{ 2 }; // scan in z-direction last
+	bool snake{ false }; // snake scanning direction
 };
 
 struct BRILLOUIN_SETTINGS {
