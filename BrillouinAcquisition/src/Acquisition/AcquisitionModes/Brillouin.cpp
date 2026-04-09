@@ -318,36 +318,31 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 
 	auto shift = 5.088; // this is the shift for water
 
+	int nImages = (m_settings.sample == "EOM") ? 100 : m_settings.nrCalibrationImages;
+
 	// acquire images
 	auto rank_cal = 3;
 	hsize_t dims_cal[3] = {
-		(hsize_t)m_settings.nrCalibrationImages,
+		(hsize_t)nImages,
 		(hsize_t)m_settings.camera.roi.height_binned,
 		(hsize_t)m_settings.camera.roi.width_binned
 	};
 
-	// If EOM mode, prepare frequency range
-	double freqStart = { 4.0 };
-    double freqEnd = m_settings.eomFrequencyInput;
-    int nImages = m_settings.nrCalibrationImages;
-    double step = (nImages > 1) ? (freqEnd - freqStart) / (nImages - 1) : 0;
-
 	std::vector<double> eomFrequencies;
 	std::vector<double> eomVoltages;
 
-	auto images = std::vector<std::byte>((int64_t)m_settings.camera.roi.bytesPerFrame * m_settings.nrCalibrationImages);
-	for (gsl::index mm{ 0 }; mm < m_settings.nrCalibrationImages; mm++) {
+
+	auto images = std::vector<std::byte>((int64_t)m_settings.camera.roi.bytesPerFrame * nImages);
+	for (gsl::index mm{ 0 }; mm < nImages; mm++) {
 		if (m_abort) {
 			this->abortMode(storage);
 			return;
 		}
 
-		// If EOM mode, set voltage before acquiring images
+		// If EOM mode, write voltage to NIDAQ before acquiring images
 		if (m_settings.sample == "EOM") {
-			double stepFrequency = freqStart + mm * step;
-			double stepVoltage = EOM::frequencyToVoltage(stepFrequency);
+			double stepVoltage = mm * 0.1;
 			EOM::writeVoltageToDAQ(stepVoltage);
-			eomFrequencies.push_back(stepFrequency);
 			eomVoltages.push_back(stepVoltage);
 		}
 
@@ -358,6 +353,9 @@ void Brillouin::calibrate(std::unique_ptr <StorageWrapper>& storage) {
 			m_andor->getImageForAcquisition(&images[pointerPos]);
 		}
 	}
+
+	// Set the attenuation voltage to default shift, this cab be moved to acquire method.
+	// EOM::writeAttenuationVoltageToDAQ(shift);
 
 	// the datetime has to be set here, otherwise it would be determined by the time the queue is processed
 	auto date = QDateTime::currentDateTime().toOffsetFromUtc(QDateTime::currentDateTime().offsetFromUtc())

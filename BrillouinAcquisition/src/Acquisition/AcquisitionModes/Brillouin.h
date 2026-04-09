@@ -74,8 +74,8 @@ struct BRILLOUIN_SETTINGS {
 		double conCalibrationInterval{ 10 };		// interval of continuous calibrations
 		int nrCalibrationImages{ 10 };				// number of calibration images
 		double calibrationExposureTime{ 1 };		// exposure time for calibration images
-		double eomFrequencyInput{ 4.0 };
-		double eomAttenuationInput{ 3.5 };
+		double eomFrequencyInput{ 6 };
+		double eomAttenuationInput{ 2.8 };
 
 		// repetition parameters
 		REPETITIONS repetitions;
