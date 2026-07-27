@@ -237,6 +237,13 @@ void ZeissMTB::connectDevice() {
 				m_stageX = (IMTBContinualPtr)m_Root->GetComponent("MTBStageAxisX");
 				// Stage axis y
 				m_stageY = (IMTBContinualPtr)m_Root->GetComponent("MTBStageAxisY");
+				// Attempt to obtain speed/acceleration interface via QueryInterface
+				try {
+					m_stageXSpeed = m_stageX;
+					m_stageYSpeed = m_stageY;
+				} catch (_com_error& e) {
+					qDebug() << "IMTBContinualSpeed not available for stage axes:" << e.ErrorMessage();
+				}
 			}
 
 			if (Thorlabs_FF::TLI_BuildDeviceList() == 0) {
@@ -470,5 +477,114 @@ double ZeissMTB::getLamp() {
 	} catch (_com_error& e) {
 		qDebug() << "Error getting lamp voltage:" << e.ErrorMessage();
 		return 0.0;
+	}
+}
+
+// NOTE: Speed unit is "µm/s" and acceleration unit is "µm/s²" — verify against MTB Control if values look unexpected.
+
+void ZeissMTB::setStageSpeed(double speed) {
+	if (!m_stageXSpeed || !m_stageYSpeed) {
+		return;
+	}
+	try {
+		m_stageXSpeed->SetContinualSpeed(speed, "µm/s");
+		m_stageYSpeed->SetContinualSpeed(speed, "µm/s");
+	} catch (_com_error& e) {
+		qDebug() << "Error setting stage speed:" << e.ErrorMessage();
+	}
+}
+
+double ZeissMTB::getStageSpeed() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		return m_stageXSpeed->GetContinualSpeed("µm/s");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting stage speed:" << e.ErrorMessage();
+		return -1.0;
+	}
+}
+
+double ZeissMTB::getMinStageSpeed() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		return m_stageXSpeed->GetMinContinualSpeed("µm/s");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting min stage speed:" << e.ErrorMessage();
+		return -1.0;
+	}
+}
+
+double ZeissMTB::getMaxStageSpeed() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		return m_stageXSpeed->GetMaxContinualSpeed("µm/s");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting max stage speed:" << e.ErrorMessage();
+		return -1.0;
+	}
+}
+
+void ZeissMTB::setStageAcceleration(double acceleration) {
+	if (!m_stageXSpeed || !m_stageYSpeed) {
+		return;
+	}
+	try {
+		if (m_stageXSpeed->HasContinualAcceleration()) {
+			m_stageXSpeed->SetContinualAcceleration(acceleration, "µm/s²");
+			m_stageYSpeed->SetContinualAcceleration(acceleration, "µm/s²");
+		}
+	} catch (_com_error& e) {
+		qDebug() << "Error setting stage acceleration:" << e.ErrorMessage();
+	}
+}
+
+double ZeissMTB::getStageAcceleration() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		if (!m_stageXSpeed->HasContinualAcceleration()) {
+			return -1.0;
+		}
+		return m_stageXSpeed->GetContinualAcceleration("µm/s²");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting stage acceleration:" << e.ErrorMessage();
+		return -1.0;
+	}
+}
+
+double ZeissMTB::getMinStageAcceleration() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		if (!m_stageXSpeed->HasContinualAcceleration()) {
+			return -1.0;
+		}
+		return m_stageXSpeed->GetMinContinualAcceleration("µm/s²");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting min stage acceleration:" << e.ErrorMessage();
+		return -1.0;
+	}
+}
+
+double ZeissMTB::getMaxStageAcceleration() {
+	if (!m_stageXSpeed) {
+		return -1.0;
+	}
+	try {
+		if (!m_stageXSpeed->HasContinualAcceleration()) {
+			return -1.0;
+		}
+		return m_stageXSpeed->GetMaxContinualAcceleration("µm/s²");
+	} catch (_com_error& e) {
+		qDebug() << "Error getting max stage acceleration:" << e.ErrorMessage();
+		return -1.0;
 	}
 }
