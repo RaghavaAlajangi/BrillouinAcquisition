@@ -694,6 +694,7 @@ void BrillouinAcquisition::addListToComboBox(QComboBox* box, const std::vector<s
 }
 
 void BrillouinAcquisition::cameraSettingsChanged(const CAMERA_SETTINGS& settings) {
+	const QSignalBlocker blocker(ui->exposureTime);
 	ui->exposureTime->setValue(settings.exposureTime);
 	ui->frameCount->setValue(settings.frameCount);
 	//ui->ROILeft->setValue(settings.roi.left);
