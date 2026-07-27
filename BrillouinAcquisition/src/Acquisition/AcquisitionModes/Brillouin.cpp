@@ -265,6 +265,8 @@ void Brillouin::abortMode(std::unique_ptr <StorageWrapper>& storage) {
 	m_repetitionTimer->stop();
 	m_startOfLastRepetition.invalidate();
 	if (m_andor) {
+		// Reset exposure time before stopping in case abort happened during calibration
+		m_andor->setCalibrationExposureTime(m_settings.camera.exposureTime);
 		m_andor->stopAcquisition();
 	}
 
