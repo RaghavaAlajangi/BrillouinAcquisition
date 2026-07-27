@@ -151,7 +151,11 @@ void PVCamera::setCalibrationExposureTime(double exposureTime) {
 
 	// Set the exposure time
 	m_settings.exposureTime = exposureTime;
+	// The calibration exposure time is a temporary hardware override,
+	// don't announce it as a settings change.
+	m_announceSettingsChange = false;
 	setSettings(m_settings);
+	m_announceSettingsChange = true;
 }
 
 void PVCamera::setSensorCooling(bool cooling) {
@@ -388,7 +392,9 @@ void PVCamera::readOptions() {
 
 void PVCamera::readSettings() {
 	// emit signal that settings changed
-	emit(settingsChanged(m_settings));
+	if (m_announceSettingsChange) {
+		emit(settingsChanged(m_settings));
+	}
 }
 
 void PVCamera::applySettings(const CAMERA_SETTINGS& settings) {

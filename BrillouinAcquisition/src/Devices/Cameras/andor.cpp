@@ -248,7 +248,9 @@ void Andor::readSettings() {
 	m_settings.roi.bytesPerFrame = m_settings.roi.height_binned * m_settings.roi.width_binned * 2;
 
 	// emit signal that settings changed
-	emit(settingsChanged(m_settings));
+	if (m_announceSettingsChange) {
+		emit(settingsChanged(m_settings));
+	}
 }
 
 void Andor::applySettings(const CAMERA_SETTINGS& settings) {

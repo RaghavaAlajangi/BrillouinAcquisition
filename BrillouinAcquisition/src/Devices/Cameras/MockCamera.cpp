@@ -173,7 +173,9 @@ void MockCamera::readOptions() {
 
 void MockCamera::readSettings() {
 	// emit signal that settings changed
-	emit(settingsChanged(m_settings));
+	if (m_announceSettingsChange) {
+		emit(settingsChanged(m_settings));
+	}
 }
 
 void MockCamera::applySettings(const CAMERA_SETTINGS& settings) {

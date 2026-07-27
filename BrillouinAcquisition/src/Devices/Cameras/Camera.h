@@ -86,6 +86,11 @@ protected:
 
 	bool m_wasPreviewRunning{ false };		// Was the preview running before we started an acquisition?
 
+
+	bool m_announceSettingsChange{ true };	// Whether readSettings() emits settingsChanged(). Disabled while a
+											// temporary hardware override (calibration exposure time) is applied,
+											// so it is not announced as a user settings change.
+
 protected slots:
 	virtual void getImageForPreview();
 
