@@ -535,7 +535,7 @@ void ZeissMTB::setStageAcceleration(double acceleration) {
 		return;
 	}
 	try {
-		if (m_stageXSpeed->HasContinualAcceleration()) {
+		if (m_stageXSpeed->GetHasContinualAcceleration()) {
 			m_stageXSpeed->SetContinualAcceleration(acceleration, "µm/s²");
 			m_stageYSpeed->SetContinualAcceleration(acceleration, "µm/s²");
 		}
@@ -549,7 +549,7 @@ double ZeissMTB::getStageAcceleration() {
 		return -1.0;
 	}
 	try {
-		if (!m_stageXSpeed->HasContinualAcceleration()) {
+		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
 		return m_stageXSpeed->GetContinualAcceleration("µm/s²");
@@ -564,7 +564,7 @@ double ZeissMTB::getMinStageAcceleration() {
 		return -1.0;
 	}
 	try {
-		if (!m_stageXSpeed->HasContinualAcceleration()) {
+		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
 		return m_stageXSpeed->GetMinContinualAcceleration("µm/s²");
@@ -579,7 +579,7 @@ double ZeissMTB::getMaxStageAcceleration() {
 		return -1.0;
 	}
 	try {
-		if (!m_stageXSpeed->HasContinualAcceleration()) {
+		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
 		return m_stageXSpeed->GetMaxContinualAcceleration("µm/s²");
