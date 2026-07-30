@@ -23,12 +23,12 @@ enum class ScanPreset {
 ENABLE_BITMASK_OPERATORS(ScanPreset)
 
 struct BOUNDS {
-	double xMin{ -1e3 };	// [µm] minimal x-value
-	double xMax{ 1e3 };		// [µm] maximal x-value
-	double yMin{ -1e3 };	// [µm] minimal y-value
-	double yMax{ 1e3 };		// [µm] maximal y-value
-	double zMin{ -1e3 };	// [µm] minimal z-value
-	double zMax{ 1e3 };		// [µm] maximal z-value
+	double xMin{ -1e3 };	// [um] minimal x-value
+	double xMax{ 1e3 };		// [um] maximal x-value
+	double yMin{ -1e3 };	// [um] minimal y-value
+	double yMax{ 1e3 };		// [um] maximal y-value
+	double zMin{ -1e3 };	// [um] minimal z-value
+	double zMax{ 1e3 };		// [um] maximal z-value
 };
 
 enum class Capabilities {
@@ -128,6 +128,15 @@ public:
 	virtual void movePosition(POINT2 distance);
 	virtual void movePosition(const POINT3& distance);
 	virtual POINT3 getPosition(PositionType positionType = PositionType::BOTH);
+	// Moves to the target position, always approaching from lower x/y values.
+	// Mechanical translation stages exhibit backlash/hysteresis, so approaching
+	// a target from an inconsistent direction leads to inconsistent positioning
+	// (e.g. a grid point is not reached reproducibly). This mirrors the approach
+	// already used for scale calibration moves.
+	void setPositionCompensated(POINT3 position);
+	// Same idea as setPositionCompensated(), but for a relative move (used for
+	// click-to-move navigation in the live view).
+	void movePositionCompensated(POINT2 distance);
 
 	typedef enum class enScanDevice {
 		ZEISSECU = 0,
@@ -168,6 +177,13 @@ public slots:
 	Preset getPreset(ScanPreset);
 	void checkPresets();
 	bool isPresetActive(ScanPreset);
+	// The "RL Shutter" device element (if this backend has one) is deliberately excluded
+	// from setPreset()'s automatic per-element forcing (see setPreset()'s own comment) -
+	// outside of an acquisition it is purely user/manual-controlled (via the beampath
+	// buttons), and acquisition code that actually needs a specific state calls this
+	// instead of relying on whatever a preset's table happens to say. No-op if this
+	// backend has no element named "RL Shutter".
+	void setRLShutterOpen(bool open);
 	void announcePosition();
 	void startAnnouncing();
 	void stopAnnouncing();
@@ -176,6 +192,7 @@ public slots:
 	void startAnnouncingElementPosition();
 	void stopAnnouncingElementPosition();
 	void setHome();
+	POINT3 getHomePosition() const;
 	void moveHome();
 	void savePosition();
 	void moveToSavedPosition(int index);
@@ -188,6 +205,19 @@ public slots:
 	ScaleCalibrationData getScaleCalibration();
 
 	std::vector<POINT2> getPositionsPix(const std::vector<POINT3>& positionsMicrometer);
+	std::vector<POINT2> getPositionsPix(const std::vector<POINT3>& positionsMicrometer, bool positionsAreAbsolute);
+	// Same conversion as getPositionsPix(), but without caching the position for
+	// re-emission on scale calibration change - use for ad-hoc overlay geometry
+	// (e.g. mosaic tile outlines) that must not clobber the cached AOI markers.
+	POINT2 getPositionPix(POINT3 positionMicrometer, bool positionIsAbsolute);
+
+	// The micrometer offset getPositionPix()/convertPositionsToPix() add to a stored
+	// (grid-offset or absolute) position before projecting it to pixels. Exposed so other
+	// overlays that are stored in the same grid-offset frame (e.g. the ROI mask polygon)
+	// can be projected with the exact same convention - re-deriving it independently is
+	// what let those overlays drift apart from the AOI markers whenever the scanner
+	// position was non-zero.
+	POINT2 getPositionOffset(bool positionIsAbsolute);
 
 	virtual POINT2 pixToMicroMeter(POINT2 positionPix);
 	virtual POINT2 microMeterToPix(POINT2 positionMicrometer);
@@ -206,13 +236,13 @@ protected:
 
 	std::vector<Capabilities> m_capabilities;
 
-	double m_positionFocus{ 0 };			// [µm]	position of the focus (z-position)
-	POINT2 m_positionStage{ 0, 0 };			// [µm]	position of the stage (x-y-position)
-	POINT2 m_positionScanner{ 0, 0 };		// [µm]	position of the scanner (x-y-position)
+	double m_positionFocus{ 0 };			// [um]	position of the focus (z-position)
+	POINT2 m_positionStage{ 0, 0 };			// [um]	position of the stage (x-y-position)
+	POINT2 m_positionScanner{ 0, 0 };		// [um]	position of the scanner (x-y-position)
 
 	bool m_isCompatible{ false };
 	POINT3 m_homePosition{ 0, 0, 0 };
-	POINT2 m_startPosition{ 0, 0 };		// [µm]	start position
+	POINT2 m_startPosition{ 0, 0 };		// [um]	start position
 
 	ScaleCalibrationData m_scaleCalibration;
 
@@ -226,6 +256,7 @@ protected:
 	BOUNDS m_currentPositionBounds;
 
 	bool m_measurementMode{ false };
+	bool m_AOI_positionsAbsolute{ false };
 	POINT2 m_positionStageOld{ 0, 0 };
 	POINT2 m_positionScannerOld{ 0, 0 };
 
@@ -243,6 +274,14 @@ signals:
 	void currentPositionBoundsChanged(BOUNDS);
 	void s_scaleCalibrationChanged(std::vector<POINT2>);
 	void s_positionScannerChanged(POINT2);
+	// Emitted alongside s_scaleCalibrationChanged, from the same computation, so a receiver
+	// on another thread can cache the exact offset the just-emitted AOI pixel positions were
+	// built from - see getPositionOffset()/announcePositions() for why re-fetching this live
+	// afterward (rather than using this snapshot) is racy whenever something on this thread
+	// (e.g. enableMeasurementMode(false) at the end of an acquisition) changes what
+	// getPositionOffset() would return before the receiver gets around to processing the
+	// queued signal.
+	void s_gridOffsetChanged(POINT2 offsetUm, bool positionIsAbsolute);
 };
 
 #endif // SCANCONTROL_H

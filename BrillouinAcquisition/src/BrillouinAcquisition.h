@@ -48,6 +48,13 @@ typedef struct {
 	STAGE_SETTINGS stage;
 } SETTINGS_DEVICES;
 
+enum class BrightfieldViewRotation {
+	Rot0 = 0,
+	Rot90 = 1,
+	Rot180 = 2,
+	Rot270 = 3
+};
+
 enum ROI_SOURCE {
 	BOX,
 	PLOT
@@ -132,6 +139,37 @@ private:
 	void plotting(PLOT_SETTINGS* plotSettings, long long dim_x, long long dim_y, const std::vector<T>& unpackedBuffer);
 
 	Ui::BrillouinAcquisitionClass* ui;
+	QCheckBox* m_useRoiMaskCheckbox{ nullptr };
+	QAbstractButton* m_editRoiCheckbox{ nullptr };
+	QPushButton* m_clearRoiButton{ nullptr };
+	QCheckBox* m_useSurfaceFollowCheckbox{ nullptr };
+	QSpinBox* m_preScanXYBinSpinBox{ nullptr };
+	QDoubleSpinBox* m_preScanZStepSpinBox{ nullptr };
+	QDoubleSpinBox* m_preScanZTravelSpinBox{ nullptr };
+	QDoubleSpinBox* m_surfaceDropSpinBox{ nullptr };
+	QSpinBox* m_mediumReferenceFrameCountSpinBox{ nullptr };
+	QDoubleSpinBox* m_surfaceMaxRewindSpinBox{ nullptr };
+	QSpinBox* m_surfaceVerificationStepsSpinBox{ nullptr };
+	QSpinBox* m_surfaceVerificationFrameAverageSpinBox{ nullptr };
+	QDoubleSpinBox* m_surfaceVerificationToleranceSpinBox{ nullptr };
+	QCheckBox* m_absoluteGridCheckbox{ nullptr };
+	QCheckBox* m_gridHysteresisCompensationCheckbox{ nullptr };
+	QCheckBox* m_saveOverviewBrightfieldPerZCheckbox{ nullptr };
+	QRadioButton* m_overviewSingleImageRadio{ nullptr };
+	QRadioButton* m_overviewFullGridRadio{ nullptr };
+	QCheckBox* m_overviewSampledGridCheckbox{ nullptr };
+	QSpinBox* m_overviewBinSpinBox{ nullptr };
+	QCheckBox* m_overviewFullStackCheckbox{ nullptr };
+	QAbstractButton* m_editSpectralProxyRoiCheckbox{ nullptr };
+	QCPItemRect* m_spectralProxyRoiRectItem{ nullptr };
+	QCPItemRect* m_spectralProxyRoi2RectItem{ nullptr };
+	QPoint m_spectralProxyDragStart;
+	int m_spectralProxyActiveRoiIndex{ 0 };
+	int m_spectralProxyNextRoiIndex{ 0 };
+	bool m_spectralProxyDragActive{ false };
+	QCPItemRect* ensureSpectralProxyRoiRect(int index);
+	void updateSpectralProxyRoiRect(int index);
+	void clearSpectralProxyRois();
 	ScanControl::SCAN_DEVICE m_scanControllerType = ScanControl::SCAN_DEVICE::ZEISSECU;
 	ScanControl::SCAN_DEVICE m_scanControllerTypeTemporary = m_scanControllerType;
 
@@ -170,11 +208,59 @@ private:
 	QCPGraph* m_positionScannerMarker{ nullptr };
 	POINT2 m_positionScanner{ -1, -1 };
 	bool m_locatePositionScanner{ false };
+	BrightfieldViewRotation m_brightfieldViewRotation{ BrightfieldViewRotation::Rot0 };
+	bool m_brightfieldMirrorHorizontal{ false };
+	bool m_brightfieldMirrorVertical{ false };
+	int m_brightfieldRawWidth{ 1 };
+	int m_brightfieldRawHeight{ 1 };
 
 	QCPCurve* m_positionsMarker{ nullptr };
+	QCPCurve* m_positionsMarkerSquare{ nullptr };
+	QCPCurve* m_positionsMarkerInsideRoi{ nullptr };
+	QCPCurve* m_positionsMarkerOutsideRoi{ nullptr };
+	QCPCurve* m_positionsMarkerSquareInsideRoi{ nullptr };
+	QCPCurve* m_positionsMarkerSquareOutsideRoi{ nullptr };
+	QCPCurve* m_roiPolygonMarker{ nullptr };
+	int m_draggedRoiVertexIndex{ -1 };
+	bool m_draggingRoiVertex{ false };
+	// True only while useRoiMask is off because updateBrillouinSettings() auto-disabled it
+	// due to an invalid (self-intersecting / <3 point) polygon, as opposed to the user
+	// having deliberately unchecked it. Lets that same auto-disable be auto-undone once the
+	// polygon becomes valid again, without fighting a genuine user choice.
+	bool m_roiMaskAutoDisabled{ false };
 	std::vector<POINT3> m_positionsMicrometer;	// [µm]		Positions to raster, relative to current start point
 	std::vector<POINT2> m_positionsPixel;		// [pix]	Positions to raster
+	// Grid points the ROI mask excludes from the actual scan - preview-only (see
+	// ScanPlannerOutput::excludedPositionsAbsolute/Relative), shown as the red "outside ROI"
+	// markers. Pixel positions are not cached alongside these like m_positionsPixel is -
+	// they're re-derived from this list on every update_AOI_preview() call instead, since a
+	// stale cache here is exactly what let the ROI overlay and the markers drift apart before.
+	std::vector<POINT3> m_excludedPositionsMicrometer;
 	bool m_showPositions{ true };
+
+	// Snapshot of ScanControl::getPositionOffset(m_currentGridOffsetIsAbsolute), delivered via
+	// ScanControl::s_gridOffsetChanged() atomically with the AOI pixel positions it was used
+	// to compute. ScanControl lives on a different thread, so a direct/live call to
+	// getPositionOffset() from here can race against that thread changing measurement mode
+	// (e.g. enableMeasurementMode(false) right at the end of an acquisition) between when the
+	// grid's own already-queued position signal was emitted and when this thread gets around
+	// to processing it - which is exactly what let the grid and the ROI polygon (each
+	// projected via a differently-timed live fetch) disagree in relative grid mode. Use this
+	// cached value instead of a fresh getPositionOffset() call so every overlay that needs an
+	// offset agrees with whatever the grid itself is currently showing.
+	POINT2 m_currentGridOffsetUm{ 0, 0 };
+	bool m_currentGridOffsetIsAbsolute{ false };
+
+	// Dashed yellow outline(s) of the area covered by the brightfield overview mosaic
+	// (one per disjoint group of active points, not one per tile), shown in the live
+	// view while the "Full grid (mosaic)" overview option is active.
+	std::vector<QCPItemRect*> m_overviewTileRects;
+	// Point marker(s) showing exactly where the BF overview will be captured for the
+	// "single image" (1 point, the grid center) and "sampled grid points" (coarse-binned
+	// real grid points) coverage modes - the mosaic mode already shows its own coverage
+	// via m_overviewTileRects above, so this stays hidden then.
+	QCPCurve* m_overviewPointMarker{ nullptr };
+	void updateOverviewTileOutlines();
 
 	CAMERA_DEVICE m_cameraType{ CAMERA_DEVICE::UEYE };
 	CAMERA_DEVICE m_cameraTypeTemporary = m_cameraType;
@@ -206,7 +292,7 @@ private:
 	Thread m_acquisitionThread;
 	Thread m_plottingThread;
 
-	Brillouin* m_Brillouin = new Brillouin(nullptr, m_acquisition, m_andor, m_scanControl);
+	Brillouin* m_Brillouin = new Brillouin(nullptr, m_acquisition, m_andor, m_brightfieldCamera, m_scanControl);
 	ODT* m_ODT{ nullptr };
 	Fluorescence* m_Fluorescence{ nullptr };
 	VoltageCalibration* m_voltageCalibration{ nullptr };
@@ -223,6 +309,20 @@ private:
 	StoragePath m_storagePath{ "", "." };
 	bool m_previewRunning{ false };
 	bool m_brightfieldPreviewRunning{ false };
+	// True only while the brightfield live view was auto-started for a surface-scan
+	// review pause, so leaving that state can stop it again without also stopping a live
+	// view the user had already started manually for an unrelated reason.
+	bool m_brightfieldPreviewStartedForSurfaceReview{ false };
+	// Auto-continues a WAITFORSURFACEREVIEW pause (as if "Continue" was clicked) if the
+	// user doesn't respond within kSurfaceReviewTimeoutS - ticks m_surfaceReviewSecondsRemaining
+	// down once a second, showing the countdown on the existing acquisition-progress bar
+	// (ui->progressBar) rather than adding a dedicated widget. Stopped/reset whenever the
+	// status leaves WAITFORSURFACEREVIEW, from whichever path caused that (manual Continue/
+	// Full grid click, or this same timeout).
+	static constexpr int kSurfaceReviewTimeoutS{ 15 };
+	QTimer* m_surfaceReviewTimer{ nullptr };
+	int m_surfaceReviewSecondsRemaining{ 0 };
+	void onSurfaceReviewTimerTick();
 	ACQUISITION_MODE m_enabledModes{ ACQUISITION_MODE::NONE };
 
 	bool m_hasFluorescence{ false };
@@ -323,6 +423,7 @@ private slots:
 	void initBeampathButtons();
 
 	void on_BrillouinStart_clicked();
+	void on_fullGridButton_clicked();
 	void microscopeElementPositionsChanged(const std::vector<double>&);
 	void microscopeElementPositionChanged(DeviceElement element, double position);
 	void on_camera_playPause_clicked();
@@ -339,6 +440,15 @@ private slots:
 	void initializePlot(PLOT_SETTINGS plotSettings);
 
 	void drawPositionScannerMarker(POINT2 positionScanner);
+	POINT2 brightfieldRawToDisplay(POINT2 point) const;
+	POINT2 brightfieldDisplayToRaw(POINT2 point) const;
+	int brightfieldDisplayWidth() const;
+	int brightfieldDisplayHeight() const;
+	bool isBrightfieldRotated90() const;
+	bool hasBrightfieldViewTransform() const;
+	QString brightfieldRotationText() const;
+	void updateBrightfieldTransformButtons();
+	void applyBrightfieldViewTransformChanged();
 
 	void xAxisRangeChangedODT(const QCPRange& newRange);
 	void yAxisRangeChangedODT(const QCPRange& newRange);
@@ -389,6 +499,22 @@ private slots:
 	void cameraODTOptionsChanged(const CAMERA_OPTIONS& options);
 	void showAcqPosition(POINT3, int);
 	void showPosition(POINT3);
+	void updateEstimatedAcquisitionTime();
+	void updateBrillouinStartAvailability();
+	void refreshSpectralProxyRoiRects();
+	POINT3 gridOffsetToAbsoluteTarget(const POINT3& gridOffset, const POINT3& relativeOrigin) const;
+	POINT3 absoluteTargetToGridOffset(const POINT3& absoluteTarget, const POINT3& relativeOrigin) const;
+	POINT2 imagePlaneUmToGridOffset(const POINT2& imagePlaneUm) const;
+	POINT2 imagePlaneUmToGridOffset(const POINT2& imagePlaneUm, bool gridAbsolute) const;
+	POINT2 gridOffsetToImagePlaneUm(const POINT2& gridOffset) const;
+	POINT2 gridOffsetToImagePlaneUm(const POINT2& gridOffset, bool gridAbsolute) const;
+	// Returns m_currentGridOffsetUm if it was cached for the requested mode, otherwise falls
+	// back to a live ScanControl::getPositionOffset() call (needed e.g. when
+	// preservePhysicalGridForAbsoluteMode() asks for the *other* mode's offset while the
+	// grid-coordinates-absolute setting itself is being toggled).
+	POINT2 currentGridOffset(bool gridAbsolute) const;
+	void preservePhysicalGridForAbsoluteMode(bool enabled);
+	void updateAbsoluteGridStatus();
 	void setHomePositionBounds(BOUNDS);
 	void setCurrentPositionBounds(BOUNDS bounds);
 	void showCalibrationInterval(int);
@@ -398,6 +524,8 @@ private slots:
 	void showEnabledModes(ACQUISITION_MODE mode);
 	void showBrillouinStatus(ACQUISITION_STATUS state);
 	void showBrillouinProgress(double progress, int seconds);
+	void showSurfaceScanProgress(double progress, const QString& message);
+	void on_measureSpectralProxyRoiButton_clicked();
 	void showODTStatus(ACQUISITION_STATUS state);
 	void showODTProgress(double progress, int seconds);
 	void showFluorescenceStatus(ACQUISITION_STATUS state);
@@ -421,6 +549,9 @@ private slots:
 	void on_pixelEncodingODT_currentIndexChanged(const QString& text);
 
 	void on_camera_displayMode_currentIndexChanged(const QString& text);
+	void on_brightfieldRotationButton_clicked();
+	void on_brightfieldMirrorHorizontalButton_clicked();
+	void on_brightfieldMirrorVerticalButton_clicked();
 	void on_setBackground_clicked();
 
 	void applyGradient(const PLOT_SETTINGS& plotSettings);
@@ -487,8 +618,11 @@ private slots:
 	void on_stepsZ_valueChanged(int);
 	void on_showOverlay_stateChanged(int);
 	void AOI_changed(const std::vector<POINT3>& orderedPositions);
+	void excludedAOI_changed(const std::vector<POINT3>& excludedPositions);
 	void on_scaleCalibrationChanged(const std::vector<POINT2>& positions);
+	void on_gridOffsetChanged(POINT2 offsetUm, bool positionIsAbsolute);
 	void update_AOI_preview();
+	void updateRoiPolygonPreview();
 
 	// live calibration
 	void on_preCalibration_stateChanged(int);

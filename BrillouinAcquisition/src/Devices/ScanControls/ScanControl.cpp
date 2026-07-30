@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "ScanControl.h"
 
+#include <chrono>
+#include <thread>
+
 /*
  * Public definitions
  */
@@ -17,6 +20,47 @@ void ScanControl::movePosition(POINT2 distance) {
 
 void ScanControl::movePosition(const POINT3& distance) {
 	auto position = getPosition() + distance;
+	setPosition(position);
+}
+
+void ScanControl::movePositionCompensated(POINT2 distance) {
+	auto position = getPosition();
+	auto newPosition = POINT2{ position.x, position.y } + distance;
+	setPositionCompensated(POINT3{ newPosition.x, newPosition.y, position.z });
+}
+
+void ScanControl::setPositionCompensated(POINT3 position) {
+	// Only mechanical translation stages exhibit backlash; galvo/voltage-driven
+	// scanners do not need (and would just lose time to) this compensation.
+	if (supportsCapability(Capabilities::TranslationStage)) {
+		constexpr auto hysteresisCompensation{ 10.0 };	// [Âµm] distance for compensation of the stage hysteresis
+		// getPosition() below re-queries the real hardware controller, not a cached software
+		// value, so its readback carries genuine encoder/COM round-trip noise - a picometer-
+		// scale epsilon never matches and would spuriously re-approach on every call, even
+		// when the xy target is identical to the previous one (e.g. repeated z-only moves
+		// within a surface-scan column). 0.5 Âµm is comfortably above that noise floor and
+		// comfortably below any real intended xy step.
+		constexpr auto epsilon{ 0.5 };					// [Âµm] axes closer than this are considered unchanged
+		const auto current = getPosition();
+		// To prevent problems with the hysteresis of the stage, we always approach
+		// the desired point coming from lower x/y values, just like the scale calibration does.
+		// Only axes that are actually moving are pre-approached, so e.g. a pure
+		// z/focus move does not also nudge x/y back and forth for no reason.
+		auto approach = position;
+		auto needsApproach = false;
+		if (std::abs(position.x - current.x) > epsilon) {
+			approach.x = position.x - hysteresisCompensation;
+			needsApproach = true;
+		}
+		if (std::abs(position.y - current.y) > epsilon) {
+			approach.y = position.y - hysteresisCompensation;
+			needsApproach = true;
+		}
+		if (needsApproach) {
+			setPosition(approach);
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+	}
 	setPosition(position);
 }
 
@@ -50,7 +94,10 @@ void ScanControl::setPositionRelativeX(double positionX) {
 	auto position = ScanControl::getPosition();
 	position.x = m_homePosition.x + positionX;
 
-	setPosition(position);
+	// setPositionCompensated() only pre-approaches axes that actually change,
+	// so this does not disturb y/z when only x is being set here.
+	setPositionCompensated(position);
+	announcePosition();
 }
 
 void ScanControl::setPositionRelativeY(double positionY) {
@@ -59,7 +106,8 @@ void ScanControl::setPositionRelativeY(double positionY) {
 	auto position = ScanControl::getPosition();
 	position.y = m_homePosition.y + positionY;
 
-	setPosition(position);
+	setPositionCompensated(position);
+	announcePosition();
 }
 
 void ScanControl::setPositionRelativeZ(double positionZ) {
@@ -68,7 +116,10 @@ void ScanControl::setPositionRelativeZ(double positionZ) {
 	auto position = ScanControl::getPosition();
 	position.z = m_homePosition.z + positionZ;
 
-	setPosition(position);
+	// No-op for hysteresis compensation (only x/y are compensated), kept for
+	// consistency so all manual position entry goes through the same path.
+	setPositionCompensated(position);
+	announcePosition();
 }
 
 void ScanControl::locatePositionScanner(POINT2 positionLaserPix) {
@@ -102,7 +153,9 @@ void ScanControl::setPositionInPix(POINT2 positionPix) {
 	if (abs(positionMicrometer) > 1e4) {
 		return;
 	}
-	movePosition(positionMicrometer);
+	// Click-to-move in the live view: approach from a consistent direction so
+	// repeatedly clicking back on the same spot lands there reproducibly.
+	movePositionCompensated(positionMicrometer);
 }
 
 void ScanControl::enableMeasurementMode(bool enabled) {
@@ -120,6 +173,15 @@ void ScanControl::setPreset(ScanPreset presetType) {
 	getElements();
 
 	for (gsl::index ii{ 0 }; ii < m_deviceElements.size(); ii++) {
+		// "RL Shutter" is deliberately excluded from this automatic per-preset forcing -
+		// switching optical presets (e.g. for a brightfield preview, calibration, or scale
+		// calibration) used to silently clobber whatever the user had it manually set to,
+		// even outside of an actual acquisition. It's either left exactly as the user set
+		// it (manual beampath button), or explicitly driven by acquisition code that
+		// actually needs a specific state - see setRLShutterOpen().
+		if (m_deviceElements[ii].name == "RL Shutter") {
+			continue;
+		}
 		// check if element position needs to be changed
 		if (!preset.elementPositions[ii].empty() && !simplemath::contains(preset.elementPositions[ii], m_elementPositions[ii])) {
 			setElement(m_deviceElements[ii], preset.elementPositions[ii][0]);
@@ -130,6 +192,20 @@ void ScanControl::setPreset(ScanPreset presetType) {
 	emit(elementPositionsChanged(m_elementPositions));
 
 	setPresetAfter(presetType);
+}
+
+void ScanControl::setRLShutterOpen(bool open) {
+	for (gsl::index ii{ 0 }; ii < m_deviceElements.size(); ii++) {
+		if (m_deviceElements[ii].name == "RL Shutter") {
+			// Position convention is consistent across every backend that has this
+			// element: optionNames = { "Close", "Open" }, i.e. position 1 = Close, 2 = Open.
+			const double position = open ? 2.0 : 1.0;
+			setElement(m_deviceElements[ii], position);
+			m_elementPositions[ii] = position;
+			emit(elementPositionsChanged(m_elementPositions));
+			return;
+		}
+	}
 }
 
 Preset ScanControl::getPreset(ScanPreset presetType) {
@@ -168,6 +244,7 @@ bool ScanControl::isPresetActive(ScanPreset presetType) {
 void ScanControl::announcePosition() {
 	auto point = getPosition();
 	emit(currentPosition(point - m_homePosition));
+	announcePositions();
 }
 
 void ScanControl::startAnnouncing() {
@@ -211,8 +288,13 @@ void ScanControl::setHome() {
 	calculateHomePositionBounds();
 }
 
+POINT3 ScanControl::getHomePosition() const {
+	return m_homePosition;
+}
+
 void ScanControl::moveHome() {
-	setPosition(m_homePosition);
+	// Approach from a consistent direction so returning home lands reproducibly.
+	setPositionCompensated(m_homePosition);
 }
 
 void ScanControl::savePosition() {
@@ -223,7 +305,8 @@ void ScanControl::savePosition() {
 
 void ScanControl::moveToSavedPosition(int index) {
 	if (m_savedPositions.size() > index) {
-		setPosition(m_savedPositions[index]);
+		// Approach from a consistent direction so the saved point is reached reproducibly.
+		setPositionCompensated(m_savedPositions[index]);
 	}
 }
 
@@ -269,15 +352,58 @@ ScaleCalibrationData ScanControl::getScaleCalibration() {
 }
 
 std::vector<POINT2> ScanControl::getPositionsPix(const std::vector<POINT3>& positionsMicrometer) {
+	return getPositionsPix(positionsMicrometer, false);
+}
+
+std::vector<POINT2> ScanControl::getPositionsPix(const std::vector<POINT3>& positionsMicrometer, bool positionsAreAbsolute) {
 	// Cache the requested positions so we can re-emit updated positions
 	// in case the scale calibration changes
 	m_AOI_positions = positionsMicrometer;
+	m_AOI_positionsAbsolute = positionsAreAbsolute;
 
 	return convertPositionsToPix();
 };
 
+POINT2 ScanControl::getPositionPix(POINT3 positionMicrometer, bool positionIsAbsolute) {
+	const auto offset = getPositionOffset(positionIsAbsolute);
+	return microMeterToPix(POINT2{ positionMicrometer.x, positionMicrometer.y } + offset);
+}
+
+POINT2 ScanControl::getPositionOffset(bool positionIsAbsolute) {
+	// This is the mechanism from commit 0c70d11: the grid itself pans with the current
+	// stage position, so that whichever point is currently being measured always lands at
+	// the same fixed screen pixel - coinciding with the laser marker, which is a static
+	// calibration reference (see announcePositionScanner()) and does NOT itself track the
+	// stage. What looks like "the marker moving through the grid" is actually the grid
+	// sliding past a fixed marker.
+	//
+	// In normal (live-preview) mode, the positions are shown relative to the scanner
+	// position, so they track wherever the laser currently points within the FOV.
+	auto offset = m_positionScanner;
+	if (positionIsAbsolute) {
+		// Absolute positions are stored as the raw target stage+scanner position directly
+		// (absoluteGridOriginUm + gridOffset, see gridOffsetToAbsoluteTarget()), so the
+		// scanner contribution is already baked into the stored value itself - subtracting
+		// it again here would double-count it and shift the whole grid by that amount.
+		// Only the stage position (which is what actually changes as the grid is scanned)
+		// needs to be undone, exactly like the measurement-mode branch below.
+		offset = POINT2{} - m_positionStage;
+	}
+	// In measurement mode, the positions are shown relative to the start position.
+	else if (m_measurementMode) {
+		// m_startPosition is captured as getPosition(BOTH) (stage + scanner) in
+		// enableMeasurementMode(), but the scanner term cancels exactly the same way as
+		// above - only stage needs to be subtracted here. This is the literal formula from
+		// commit 0c70d11; adding a "- m_positionScanner" term here (as a previous revision
+		// of this function did) shifts the whole grid by the scanner offset instead of
+		// leaving it centered on the marker.
+		offset = m_startPosition - m_positionStage;
+	}
+	return offset;
+}
+
 /*
- * Function converts a position in pixel to a position im µm.
+ * Function converts a position in pixel to a position in um.
  * This is relative to the origin (pixOrigin) and not on an absolute scale e.g. of the translation stage.
  */
 POINT2 ScanControl::pixToMicroMeter(POINT2 positionPix) {
@@ -302,12 +428,12 @@ void ScanControl::setPresetAfter(ScanPreset presetType) {}
 void ScanControl::calculateBounds() {
 	// Bounds of the stage
 	m_absoluteBounds = {
-		-150000,	// [µm] minimal x-value
-		 150000,	// [µm] maximal x-value
-		-150000,	// [µm] minimal y-value
-		 150000,	// [µm] maximal y-value
-		-150000,	// [µm] minimal z-value
-		 150000		// [µm] maximal z-value
+		-150000,	// [um] minimal x-value
+		 150000,	// [um] maximal x-value
+		-150000,	// [um] minimal y-value
+		 150000,	// [um] maximal y-value
+		-150000,	// [um] minimal z-value
+		 150000		// [um] maximal z-value
 	};
 }
 
@@ -339,29 +465,35 @@ void ScanControl::calculateCurrentPositionBounds(POINT3 currentPosition) {
 }
 
 /*
- * This functions announces the updated AOI positions if necessary.
- * We check if the stage or scanner position has changed since the last announcement
- * and announce new positions under these conditions:
- *	- if the stage position has changed and a scan is currently running
- *	- if the scanner position has changed and no scan is running
- * (the AOI positions are static with respect to the laser focus during preview, and
- * static with respect to the sample during scanning).
+ * Announces updated marker positions if necessary.
+ *
+ * The AOI markers (crosses/ROI) redraw whenever stage or scanner changes: live-preview mode
+ * tracks the scanner, absolute and measurement mode track stage+scanner combined (see
+ * getPositionOffset()) - in every mode the grid pans so that whichever point is currently
+ * being measured lands at the same fixed screen pixel (see commit 0c70d11, the original
+ * version of this mechanism, and announcePositionScanner() below for the marker it lands on).
  */
 void ScanControl::announcePositions() {
-	// Measurement mode and stage position didn't change significantly --> do nothing
-	if (m_measurementMode && abs(m_positionStageOld - m_positionStage) < 1e-6) return;
-	// Preview mode and scanner position didn't change significantly --> do nothing
-	if (!m_measurementMode && abs(m_positionScannerOld - m_positionScanner) < 1e-6) return;
+	const auto stageChanged = abs(m_positionStageOld - m_positionStage) >= 1e-6;
+	const auto scannerChanged = abs(m_positionScannerOld - m_positionScanner) >= 1e-6;
+	if (!stageChanged && !scannerChanged) {
+		return;
+	}
 
-	// Set new positions if they have significantly changed
-	m_positionScannerOld = m_positionScanner;
 	m_positionStageOld = m_positionStage;
+	m_positionScannerOld = m_positionScanner;
 
+	// Emitted first so a queued receiver processes the offset snapshot before the pixel
+	// positions that were computed from the exact same offset (see s_gridOffsetChanged()).
+	emit(s_gridOffsetChanged(getPositionOffset(m_AOI_positionsAbsolute), m_AOI_positionsAbsolute));
 	emit(s_scaleCalibrationChanged(convertPositionsToPix()));
 }
 
 void ScanControl::announcePositionScanner() {
-	auto positionScannerPix = microMeterToPix(m_positionScanner);
+	// A static calibration reference (see locatePositionScanner()), not something that
+	// tracks the stage - the grid itself is what pans past this fixed point during a scan
+	// (see getPositionOffset()/announcePositions()).
+	const auto positionScannerPix = microMeterToPix(m_positionScanner);
 	emit(s_positionScannerChanged(positionScannerPix));
 }
 
@@ -378,13 +510,7 @@ void ScanControl::registerCapability(Capabilities capability) {
 
 std::vector<POINT2> ScanControl::convertPositionsToPix() {
 	auto positionsPix = std::vector<POINT2>(m_AOI_positions.size());
-
-	// In normal mode, the positions are shown relative to the scanner position.
-	auto offset = m_positionScanner;
-	// In measurement mode, the positions are shown relative to the start position.
-	if (this->m_measurementMode) {
-		offset = this->m_startPosition - m_positionStage;
-	}
+	const auto offset = getPositionOffset(m_AOI_positionsAbsolute);
 
 	std::transform(m_AOI_positions.begin(), m_AOI_positions.end(), positionsPix.begin(),
 		[this, offset](POINT3 point) {
