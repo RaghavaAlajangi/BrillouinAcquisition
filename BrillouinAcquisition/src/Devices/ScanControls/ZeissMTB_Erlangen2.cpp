@@ -430,15 +430,15 @@ int ZeissMTB_Erlangen2::getMirror() {
 	return -1;
 }
 
-// NOTE: Speed unit is "Âµm/s" and acceleration unit is "Âµm/sÂ²" â€” verify against MTB Control if values look unexpected.
+// NOTE: Speed unit is "µm/s" and acceleration unit is "µm/s²" â€” verify against MTB Control if values look unexpected.
 
 void ZeissMTB_Erlangen2::setStageSpeed(double speed) {
 	if (!m_stageXSpeed || !m_stageYSpeed) {
 		return;
 	}
 	try {
-		m_stageXSpeed->SetContinualSpeed(speed, "Âµm/s");
-		m_stageYSpeed->SetContinualSpeed(speed, "Âµm/s");
+		m_stageXSpeed->SetContinualSpeed(speed, "µm/s");
+		m_stageYSpeed->SetContinualSpeed(speed, "µm/s");
 	} catch (_com_error& e) {
 		qDebug() << "Error setting stage speed:" << e.ErrorMessage();
 	}
@@ -449,7 +449,7 @@ double ZeissMTB_Erlangen2::getStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetContinualSpeed("Âµm/s");
+		return m_stageXSpeed->GetContinualSpeed("µm/s");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -461,7 +461,7 @@ double ZeissMTB_Erlangen2::getMinStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetMinContinualSpeed("Âµm/s");
+		return m_stageXSpeed->GetMinContinualSpeed("µm/s");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting min stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -473,7 +473,7 @@ double ZeissMTB_Erlangen2::getMaxStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetMaxContinualSpeed("Âµm/s");
+		return m_stageXSpeed->GetMaxContinualSpeed("µm/s");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting max stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -486,8 +486,8 @@ void ZeissMTB_Erlangen2::setStageAcceleration(double acceleration) {
 	}
 	try {
 		if (m_stageXSpeed->GetHasContinualAcceleration()) {
-			m_stageXSpeed->SetContinualAcceleration(acceleration, "Âµm/sÂ²");
-			m_stageYSpeed->SetContinualAcceleration(acceleration, "Âµm/sÂ²");
+			m_stageXSpeed->SetContinualAcceleration(acceleration, "µm/s²");
+			m_stageYSpeed->SetContinualAcceleration(acceleration, "µm/s²");
 		}
 	} catch (_com_error& e) {
 		qDebug() << "Error setting stage acceleration:" << e.ErrorMessage();
@@ -502,7 +502,7 @@ double ZeissMTB_Erlangen2::getStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetContinualAcceleration("Âµm/sÂ²");
+		return m_stageXSpeed->GetContinualAcceleration("µm/s²");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting stage acceleration:" << e.ErrorMessage();
 		return -1.0;
@@ -517,7 +517,7 @@ double ZeissMTB_Erlangen2::getMinStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetMinContinualAcceleration("Âµm/sÂ²");
+		return m_stageXSpeed->GetMinContinualAcceleration("µm/s²");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting min stage acceleration:" << e.ErrorMessage();
 		return -1.0;
@@ -532,7 +532,7 @@ double ZeissMTB_Erlangen2::getMaxStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetMaxContinualAcceleration("Âµm/sÂ²");
+		return m_stageXSpeed->GetMaxContinualAcceleration("µm/s²");
 	} catch (_com_error& e) {
 		qDebug() << "Error getting max stage acceleration:" << e.ErrorMessage();
 		return -1.0;
