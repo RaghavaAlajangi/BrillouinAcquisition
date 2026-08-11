@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "ZeissMTB_Erlangen2.h"
 
+static const char* const kUnitMicrometer        = "\xB5m";
+static const char* const kUnitMicrometerPerSec   = "\xB5m/s";
+static const char* const kUnitMicrometerPerSecSq = "\xB5m/s\xB2";
+
 /*
  * Public definitions
  */
@@ -33,7 +37,7 @@ ZeissMTB_Erlangen2::ZeissMTB_Erlangen2() noexcept {
 	/*
 	 * Initialize the scale calibration with default values (determined for a 20x objective)
 	 */
-	auto scale = double{ 0.235674 };					// [µm/pix] image scale
+	auto scale = double{ 0.235674 };					// [ï¿½m/pix] image scale
 
 	auto scaleCalibration = ScaleCalibrationData{};
 	scaleCalibration.pixToMicrometerX = { 0, scale };	// camera x axis is stage y axis
@@ -76,7 +80,7 @@ void ZeissMTB_Erlangen2::setPosition(POINT2 position) {
 	if (abs(m_positionStage.x - positionStage.x) > 1e-6) {
 		try {
 			m_positionStage.x = positionStage.x;
-			success = m_stageX->SetPosition(m_positionStage.x, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+			success = m_stageX->SetPosition(m_positionStage.x, kUnitMicrometer, MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
 		} catch (_com_error& e) {
 			qDebug() << "Error setting stage X position:" << e.ErrorMessage();
 		}
@@ -84,7 +88,7 @@ void ZeissMTB_Erlangen2::setPosition(POINT2 position) {
 	if (abs(m_positionStage.y - positionStage.y) > 1e-6) {
 		try {
 			m_positionStage.y = positionStage.y;
-			success = m_stageY->SetPosition(m_positionStage.y, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+			success = m_stageY->SetPosition(m_positionStage.y, kUnitMicrometer, MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
 		} catch (_com_error& e) {
 			qDebug() << "Error setting stage Y position:" << e.ErrorMessage();
 		}
@@ -102,7 +106,7 @@ void ZeissMTB_Erlangen2::setPosition(POINT3 position) {
 	if (abs(m_positionFocus - position.z) > 1e-6) {
 		try {
 			m_positionFocus = position.z;
-			success = m_ObjectiveFocus->SetPosition(m_positionFocus, "µm", MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
+			success = m_ObjectiveFocus->SetPosition(m_positionFocus, kUnitMicrometer, MTBCmdSetModes::MTBCmdSetModes_Synchronous, 500);
 		} catch (_com_error& e) {
 			qDebug() << "Error setting focus position:" << e.ErrorMessage();
 		}
@@ -118,7 +122,7 @@ void ZeissMTB_Erlangen2::movePosition(POINT2 distance) {
 	if (abs(distance.x) > 1e-6) {
 		try {
 			m_positionStage.x += distance.x;
-			success = m_stageX->SetPosition(distance.x, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+			success = m_stageX->SetPosition(distance.x, kUnitMicrometer, (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
 		} catch (_com_error& e) {
 			qDebug() << "Error moving stage X:" << e.ErrorMessage();
 		}
@@ -126,7 +130,7 @@ void ZeissMTB_Erlangen2::movePosition(POINT2 distance) {
 	if (abs(distance.y) > 1e-6) {
 		try {
 			m_positionStage.y += distance.y;
-			success = m_stageY->SetPosition(distance.y, "µm", (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
+			success = m_stageY->SetPosition(distance.y, kUnitMicrometer, (MTBCmdSetModes)(MTBCmdSetModes::MTBCmdSetModes_Synchronous | MTBCmdSetModes::MTBCmdSetModes_Relative), 500);
 		} catch (_com_error& e) {
 			qDebug() << "Error moving stage Y:" << e.ErrorMessage();
 		}
@@ -138,15 +142,15 @@ void ZeissMTB_Erlangen2::movePosition(POINT2 distance) {
 POINT3 ZeissMTB_Erlangen2::getPosition(PositionType positionType) {
 	if (m_stageX && m_stageY) {
 		try {
-			m_positionStage.x = m_stageX->GetPosition("µm");
-			m_positionStage.y = m_stageY->GetPosition("µm");
+			m_positionStage.x = m_stageX->GetPosition(kUnitMicrometer);
+			m_positionStage.y = m_stageY->GetPosition(kUnitMicrometer);
 		} catch (_com_error& e) {
 			qDebug() << "Error getting stage position:" << e.ErrorMessage();
 		}
 	}
 	if (m_ObjectiveFocus) {
 		try {
-			m_positionFocus = m_ObjectiveFocus->GetPosition("µm");
+			m_positionFocus = m_ObjectiveFocus->GetPosition(kUnitMicrometer);
 		} catch (_com_error& e) {
 			qDebug() << "Error getting focus position:" << e.ErrorMessage();
 		}
@@ -430,15 +434,15 @@ int ZeissMTB_Erlangen2::getMirror() {
 	return -1;
 }
 
-// NOTE: Speed unit is "µm/s" and acceleration unit is "µm/s²" â€” verify against MTB Control if values look unexpected.
+// NOTE: Speed unit is kUnitMicrometerPerSec and acceleration unit is kUnitMicrometerPerSecSq â€” verify against MTB Control if values look unexpected.
 
 void ZeissMTB_Erlangen2::setStageSpeed(double speed) {
 	if (!m_stageXSpeed || !m_stageYSpeed) {
 		return;
 	}
 	try {
-		m_stageXSpeed->SetContinualSpeed(speed, "µm/s");
-		m_stageYSpeed->SetContinualSpeed(speed, "µm/s");
+		m_stageXSpeed->SetContinualSpeed(speed, kUnitMicrometerPerSec);
+		m_stageYSpeed->SetContinualSpeed(speed, kUnitMicrometerPerSec);
 	} catch (_com_error& e) {
 		qDebug() << "Error setting stage speed:" << e.ErrorMessage();
 	}
@@ -449,7 +453,7 @@ double ZeissMTB_Erlangen2::getStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetContinualSpeed("µm/s");
+		return m_stageXSpeed->GetContinualSpeed(kUnitMicrometerPerSec);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -461,7 +465,7 @@ double ZeissMTB_Erlangen2::getMinStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetMinContinualSpeed("µm/s");
+		return m_stageXSpeed->GetMinContinualSpeed(kUnitMicrometerPerSec);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting min stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -473,7 +477,7 @@ double ZeissMTB_Erlangen2::getMaxStageSpeed() {
 		return -1.0;
 	}
 	try {
-		return m_stageXSpeed->GetMaxContinualSpeed("µm/s");
+		return m_stageXSpeed->GetMaxContinualSpeed(kUnitMicrometerPerSec);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting max stage speed:" << e.ErrorMessage();
 		return -1.0;
@@ -486,8 +490,8 @@ void ZeissMTB_Erlangen2::setStageAcceleration(double acceleration) {
 	}
 	try {
 		if (m_stageXSpeed->GetHasContinualAcceleration()) {
-			m_stageXSpeed->SetContinualAcceleration(acceleration, "µm/s²");
-			m_stageYSpeed->SetContinualAcceleration(acceleration, "µm/s²");
+			m_stageXSpeed->SetContinualAcceleration(acceleration, kUnitMicrometerPerSecSq);
+			m_stageYSpeed->SetContinualAcceleration(acceleration, kUnitMicrometerPerSecSq);
 		}
 	} catch (_com_error& e) {
 		qDebug() << "Error setting stage acceleration:" << e.ErrorMessage();
@@ -502,7 +506,7 @@ double ZeissMTB_Erlangen2::getStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetContinualAcceleration("µm/s²");
+		return m_stageXSpeed->GetContinualAcceleration(kUnitMicrometerPerSecSq);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting stage acceleration:" << e.ErrorMessage();
 		return -1.0;
@@ -517,7 +521,7 @@ double ZeissMTB_Erlangen2::getMinStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetMinContinualAcceleration("µm/s²");
+		return m_stageXSpeed->GetMinContinualAcceleration(kUnitMicrometerPerSecSq);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting min stage acceleration:" << e.ErrorMessage();
 		return -1.0;
@@ -532,7 +536,7 @@ double ZeissMTB_Erlangen2::getMaxStageAcceleration() {
 		if (!m_stageXSpeed->GetHasContinualAcceleration()) {
 			return -1.0;
 		}
-		return m_stageXSpeed->GetMaxContinualAcceleration("µm/s²");
+		return m_stageXSpeed->GetMaxContinualAcceleration(kUnitMicrometerPerSecSq);
 	} catch (_com_error& e) {
 		qDebug() << "Error getting max stage acceleration:" << e.ErrorMessage();
 		return -1.0;
