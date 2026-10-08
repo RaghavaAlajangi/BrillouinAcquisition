@@ -5,6 +5,9 @@ static const char* const kUnitMicrometer        = "\xB5m";
 static const char* const kUnitMicrometerPerSec   = "\xB5m/s";
 static const char* const kUnitMicrometerPerSecSq = "\xB5m/s\xB2";
 
+// Upper bound for a single stage move to finish [ms]
+static const long kStageMoveTimeout = 60000;
+
 /*
  * Public definitions
  */
@@ -93,6 +96,7 @@ void ZeissMTB_Erlangen2::setPosition(POINT2 position) {
 			qDebug() << "Error setting stage Y position:" << e.ErrorMessage();
 		}
 	}
+	waitForStage();
 	calculateCurrentPositionBounds(POINT3{ position.x, position.y, m_positionFocus });
 	announcePositions();
 }
@@ -135,6 +139,7 @@ void ZeissMTB_Erlangen2::movePosition(POINT2 distance) {
 			qDebug() << "Error moving stage Y:" << e.ErrorMessage();
 		}
 	}
+	waitForStage();
 	calculateCurrentPositionBounds();
 	announcePositions();
 }
@@ -242,6 +247,8 @@ void ZeissMTB_Erlangen2::connectDevice() {
 				try {
 					m_stageXSpeed = m_stageX;
 					m_stageYSpeed = m_stageY;
+					m_stageXBase = m_stageX;
+					m_stageYBase = m_stageY;
 				} catch (_com_error& e) {
 					qDebug() << "IMTBContinualSpeed not available for stage axes:" << e.ErrorMessage();
 				}
@@ -540,5 +547,21 @@ double ZeissMTB_Erlangen2::getMaxStageAcceleration() {
 	} catch (_com_error& e) {
 		qDebug() << "Error getting max stage acceleration:" << e.ErrorMessage();
 		return -1.0;
+	}
+}
+
+// SetPosition() in synchronous mode only blocks for its 500 ms timeout. Slower moves
+// (long distances or a reduced stage speed) are still running when it returns, so we
+// explicitly wait until both axes are idle before the acquisition continues.
+void ZeissMTB_Erlangen2::waitForStage() {
+	try {
+		if (m_stageXBase && !m_stageXBase->WaitReady(kStageMoveTimeout)) {
+			qDebug() << "Timeout waiting for stage X to finish moving.";
+		}
+		if (m_stageYBase && !m_stageYBase->WaitReady(kStageMoveTimeout)) {
+			qDebug() << "Timeout waiting for stage Y to finish moving.";
+		}
+	} catch (_com_error& e) {
+		qDebug() << "Error waiting for stage:" << e.ErrorMessage();
 	}
 }

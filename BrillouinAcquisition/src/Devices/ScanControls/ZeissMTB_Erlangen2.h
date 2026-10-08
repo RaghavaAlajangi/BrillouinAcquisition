@@ -39,6 +39,8 @@ public slots:
 	void getElements() override;
 
 private:
+	void waitForStage();
+
 	bool setElement(IMTBChangerPtr element, int position);
 	int getElement(IMTBChangerPtr element);
 
@@ -85,6 +87,9 @@ private:
 	// MTB speed/acceleration interface for stage axes (optional — QueryInterface at connect time)
 	IMTBContinualSpeedPtr m_stageXSpeed{ nullptr };
 	IMTBContinualSpeedPtr m_stageYSpeed{ nullptr };
+	// MTB base interface for stage axes, used to wait until a move has finished
+	IMTBBasePtr m_stageXBase{ nullptr };
+	IMTBBasePtr m_stageYBase{ nullptr };
 
 	bool m_isMTBConnected{ false };
 
