@@ -586,6 +586,9 @@ bool ZeissMTB_Erlangen2::waitForStage(POINT2 targetStage) {
 			const auto lastY = y;
 			x = m_stageX->GetPosition(kUnitMicrometer);
 			y = m_stageY->GetPosition(kUnitMicrometer);
+			// Let the AOI overlay follow the stage while it is moving
+			m_positionStage = POINT2{ x, y };
+			announcePositions();
 			const auto atTarget = std::abs(x - targetStage.x) < kStagePositionTolerance && std::abs(y - targetStage.y) < kStagePositionTolerance;
 			const auto stopped = std::abs(x - lastX) < kStageStoppedThreshold && std::abs(y - lastY) < kStageStoppedThreshold;
 			if (atTarget && stopped) {
