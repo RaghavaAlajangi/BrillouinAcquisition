@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "ZeissMTB.h"
 
+#include <algorithm>
+#include <cmath>
+
 #include <chrono>
 #include <thread>
 
@@ -8,8 +11,12 @@ static const char* const kUnitMicrometer        = "\xB5m";
 static const char* const kUnitMicrometerPerSec   = "\xB5m/s";
 static const char* const kUnitMicrometerPerSecSq = "\xB5m/s\xB2";
 
-// Upper bound for a single stage move to finish [ms]
-static const long kStageMoveTimeout = 60000;
+// Stage move wait [see waitForStage()]
+static const double kStagePositionTolerance = 0.5;	// [um] max. deviation from target to count as arrived
+static const double kStageStoppedThreshold = 1e-3;	// [um] max. change between two polls to count as stopped
+static const long kStagePollInterval = 50;			// [ms]
+static const double kStageMoveMargin = 5.0;			// [s] added to the expected move duration
+static const double kFallbackStageSpeed = 1000.0;	// [um/s] used if the speed can't be read
 
 /*
  * Public definitions
@@ -100,7 +107,7 @@ void ZeissMTB::setPosition(POINT2 position) {
 			qDebug() << "Error setting stage Y position:" << e.ErrorMessage();
 		}
 	}
-	waitForStage();
+	m_lastMoveSucceeded = waitForStage(positionStage);
 	calculateCurrentPositionBounds(POINT3{ position.x, position.y, m_positionFocus });
 	announcePositions();
 }
@@ -127,6 +134,7 @@ void ZeissMTB::movePosition(POINT2 distance) {
 	if (!(m_stageX && m_stageY)) {
 		return;
 	}
+	const auto targetStage = m_positionStage + distance;
 	if (abs(distance.x) > 1e-6) {
 		try {
 			m_positionStage.x += distance.x;
@@ -143,7 +151,7 @@ void ZeissMTB::movePosition(POINT2 distance) {
 			qDebug() << "Error moving stage Y:" << e.ErrorMessage();
 		}
 	}
-	waitForStage();
+	m_lastMoveSucceeded = waitForStage(targetStage);
 	calculateCurrentPositionBounds();
 	announcePositions();
 }
@@ -600,18 +608,45 @@ double ZeissMTB::getMaxStageAcceleration() {
 	}
 }
 
-// SetPosition() in synchronous mode only blocks for its 500 ms timeout. Slower moves
-// (long distances or a reduced stage speed) are still running when it returns, so we
-// explicitly wait until both axes are idle before the acquisition continues.
-void ZeissMTB::waitForStage() {
+// SetPosition() in synchronous mode only blocks for its 500 ms timeout, and IMTBBase::WaitReady()
+// is not a reliable "arrived" signal for this (open-loop) stage. Slower moves (long distances or a
+// reduced stage speed) are therefore still running when SetPosition() returns. We poll the measured
+// axis positions until both are at the target and have stopped changing.
+// The timeout is derived from the remaining distance and the configured stage speed.
+bool ZeissMTB::waitForStage(POINT2 targetStage) {
+	if (!(m_stageX && m_stageY)) {
+		return false;
+	}
 	try {
-		if (m_stageXBase && !m_stageXBase->WaitReady(kStageMoveTimeout)) {
-			qDebug() << "Timeout waiting for stage X to finish moving.";
+		const auto start = std::chrono::steady_clock::now();
+		auto speed = getStageSpeed();
+		if (speed <= 0) {
+			speed = kFallbackStageSpeed;
 		}
-		if (m_stageYBase && !m_stageYBase->WaitReady(kStageMoveTimeout)) {
-			qDebug() << "Timeout waiting for stage Y to finish moving.";
+		auto x = m_stageX->GetPosition(kUnitMicrometer);
+		auto y = m_stageY->GetPosition(kUnitMicrometer);
+		const auto distance = std::max(std::abs(x - targetStage.x), std::abs(y - targetStage.y));
+		const auto timeout = std::chrono::duration<double>(1.5 * distance / speed + kStageMoveMargin);
+
+		while (std::chrono::steady_clock::now() - start < timeout) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(kStagePollInterval));
+			const auto lastX = x;
+			const auto lastY = y;
+			x = m_stageX->GetPosition(kUnitMicrometer);
+			y = m_stageY->GetPosition(kUnitMicrometer);
+			const auto atTarget = std::abs(x - targetStage.x) < kStagePositionTolerance && std::abs(y - targetStage.y) < kStagePositionTolerance;
+			const auto stopped = std::abs(x - lastX) < kStageStoppedThreshold && std::abs(y - lastY) < kStageStoppedThreshold;
+			if (atTarget && stopped) {
+				qDebug() << "Stage arrived after" << std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count()
+					<< "s, distance" << distance << "um, speed" << speed << "um/s, busy:"
+					<< (m_stageXBase ? m_stageXBase->GetIsBusy() : -1) << (m_stageYBase ? m_stageYBase->GetIsBusy() : -1);
+				return true;
+			}
 		}
+		qDebug() << "Timeout waiting for stage. Target" << targetStage.x << targetStage.y << "measured" << x << y
+			<< "after" << timeout.count() << "s, speed" << speed << "um/s";
 	} catch (_com_error& e) {
 		qDebug() << "Error waiting for stage:" << e.ErrorMessage();
 	}
+	return false;
 }

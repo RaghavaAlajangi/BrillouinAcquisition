@@ -127,6 +127,8 @@ public:
 	// moves the position relative to current position
 	virtual void movePosition(POINT2 distance);
 	virtual void movePosition(const POINT3& distance);
+	// false if the last setPosition()/movePosition() did not reach its target
+	virtual bool lastMoveSucceeded() const { return true; }
 	virtual POINT3 getPosition(PositionType positionType = PositionType::BOTH);
 
 	typedef enum class enScanDevice {

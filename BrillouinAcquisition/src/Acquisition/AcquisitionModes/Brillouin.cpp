@@ -618,6 +618,10 @@ void Brillouin::acquire(std::unique_ptr <StorageWrapper>& storage) {
 	// move stage to first position, wait 50 ms for it to finish
 	if (m_scanControl) {
 		m_scanControl->setPosition(m_orderedPositions[0]);
+		if (!m_scanControl->lastMoveSucceeded()) {
+			m_abort = true;
+			return;
+		}
 	} else {
 		m_abort = true;
 		return;
@@ -634,6 +638,10 @@ void Brillouin::acquire(std::unique_ptr <StorageWrapper>& storage) {
 				// After we calibrated, we move back to the current position
 				if (m_scanControl) {
 					m_scanControl->setPosition(m_orderedPositions[ll]);
+					if (!m_scanControl->lastMoveSucceeded()) {
+						m_abort = true;
+						return;
+					}
 				} else {
 					m_abort = true;
 					return;
@@ -739,6 +747,10 @@ void Brillouin::acquire(std::unique_ptr <StorageWrapper>& storage) {
 		if (ll < ((gsl::index)nrPositions - 1)) {
 			if (m_scanControl) {
 				m_scanControl->setPosition(m_orderedPositions[ll + 1]);
+				if (!m_scanControl->lastMoveSucceeded()) {
+					m_abort = true;
+					return;
+				}
 			} else {
 				m_abort = true;
 				return;

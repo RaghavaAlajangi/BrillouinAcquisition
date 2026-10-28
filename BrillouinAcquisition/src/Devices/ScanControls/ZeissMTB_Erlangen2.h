@@ -19,6 +19,7 @@ public:
 	void setPosition(POINT2 position) override;
 	void setPosition(POINT3 position) override;
 	void movePosition(POINT2 position) override;
+	bool lastMoveSucceeded() const override { return m_lastMoveSucceeded; }
 	POINT3 getPosition(PositionType positionType = PositionType::BOTH) override;
 
 	void setStageSpeed(double speed);
@@ -39,7 +40,7 @@ public slots:
 	void getElements() override;
 
 private:
-	void waitForStage();
+	bool waitForStage(POINT2 targetStage);
 
 	bool setElement(IMTBChangerPtr element, int position);
 	int getElement(IMTBChangerPtr element);
@@ -88,6 +89,8 @@ private:
 	IMTBContinualSpeedPtr m_stageXSpeed{ nullptr };
 	IMTBContinualSpeedPtr m_stageYSpeed{ nullptr };
 	// MTB base interface for stage axes, used to wait until a move has finished
+	// false if the last stage move did not reach its target within the expected time
+	bool m_lastMoveSucceeded{ true };
 	IMTBBasePtr m_stageXBase{ nullptr };
 	IMTBBasePtr m_stageYBase{ nullptr };
 
