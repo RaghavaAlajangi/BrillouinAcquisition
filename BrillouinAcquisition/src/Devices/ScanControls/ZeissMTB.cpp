@@ -499,7 +499,7 @@ double ZeissMTB::getLamp() {
 	}
 }
 
-// NOTE: Speed unit is kUnitMicrometerPerSec and acceleration unit is kUnitMicrometerPerSecSq — verify against MTB Control if values look unexpected.
+// NOTE: Speed unit is kUnitMicrometerPerSec and acceleration unit is kUnitMicrometerPerSecSq - verify against MTB Control if values look unexpected.
 
 void ZeissMTB::setStageSpeed(double speed) {
 	if (!m_stageXSpeed || !m_stageYSpeed) {

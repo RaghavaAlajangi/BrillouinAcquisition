@@ -97,7 +97,7 @@ private:
 	IMTBContinualPtr m_stageX{ nullptr };
 	// MTB interface pointer to the stage axis y
 	IMTBContinualPtr m_stageY{ nullptr };
-	// MTB speed/acceleration interface for stage axes (optional — QueryInterface at connect time)
+	// MTB speed/acceleration interface for stage axes (optional - QueryInterface at connect time)
 	IMTBContinualSpeedPtr m_stageXSpeed{ nullptr };
 	IMTBContinualSpeedPtr m_stageYSpeed{ nullptr };
 	// MTB base interface for stage axes, used to wait until a move has finished

@@ -54,7 +54,7 @@ ZeissMTB_Erlangen::ZeissMTB_Erlangen() noexcept {
 	/*
 	 * Initialize the scale calibration with default values (determined for a 20x objective)
 	 */
-	auto scale = double{ 0.22873 };						// [ï¿½m/pix] image scale
+	auto scale = double{ 0.22873 };						// [µm/pix] image scale
 
 	auto scaleCalibration = ScaleCalibrationData{};
 	scaleCalibration.pixToMicrometerX = { 0, scale };	// camera x axis is stage y axis
@@ -473,7 +473,7 @@ int ZeissMTB_Erlangen::getBeamBlock() {
 	return (int)m_beamBlockOpen;
 }
 
-// NOTE: Speed unit is kUnitMicrometerPerSec and acceleration unit is kUnitMicrometerPerSecSq â€” verify against MTB Control if values look unexpected.
+// NOTE: Speed unit is kUnitMicrometerPerSec and acceleration unit is kUnitMicrometerPerSecSq - verify against MTB Control if values look unexpected.
 
 void ZeissMTB_Erlangen::setStageSpeed(double speed) {
 	if (!m_stageXSpeed || !m_stageYSpeed) {
